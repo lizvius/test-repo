@@ -490,52 +490,37 @@ export const PostinganPage: React.FC = () => {
                     <ShieldCheck className="w-3 h-3" /> Anti Duplicate
                   </span>
                 </label>
-                <div className="space-y-4">
+                <div className="space-y-2">
                   {links.map((link, idx) => (
-                    <div key={idx} className="space-y-3 p-4 rounded-3xl bg-slate-950/40 border border-slate-800/50 shadow-inner group focus-within:border-sky-500/30 transition-all">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-500 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
-                          #{startNumber + idx}
-                        </span>
-                        
-                        <div className="flex items-center gap-1">
-                          <span className="text-[8px] font-black text-slate-600 uppercase tracking-tighter mr-1">Platform:</span>
-                          <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 border ${
-                            CHANNELS.find(c => c.id === link.platform)?.color || 'text-slate-400 border-slate-800 bg-slate-900'
-                          }`}>
-                            <ChannelPlatformIcon id={link.platform} />
-                            {link.platform}
+                    <div key={idx} className="flex flex-col gap-2 p-3 rounded-2xl bg-slate-950/40 border border-slate-800/50 shadow-inner group focus-within:border-sky-500/30 transition-all">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-slate-500 bg-slate-900 w-6 h-6 flex items-center justify-center rounded-lg border border-slate-800 shrink-0">
+                            {idx + 1}
                           </span>
+                          <input
+                            type="text"
+                            value={link.url}
+                            onChange={(e) => updateLink(idx, e.target.value)}
+                            placeholder={`Link #${startNumber + idx}`}
+                            className="bg-transparent border-none text-white text-xs outline-none w-full placeholder:text-slate-700 font-medium"
+                          />
                         </div>
-                      </div>
-                      
-                      <div className="relative">
-                        <input
-                          type="text"
-                          value={link.url}
-                          onChange={(e) => updateLink(idx, e.target.value)}
-                          placeholder="Paste link postingan..."
-                          className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 focus:border-sky-500/50 text-white text-xs outline-none transition-all placeholder:text-slate-700 font-medium"
-                        />
-                      </div>
-
-                      {/* Manual Platform Overrides (Mini Grid) */}
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {CHANNELS.map(p => {
-                          const isSelected = link.platform === p.id;
-                          return (
-                            <button
-                              key={p.id}
-                              onClick={() => updatePlatform(idx, p.id as SocialPlatform)}
-                              className={`py-1.5 rounded-lg text-[8px] font-black uppercase transition-all flex flex-col items-center justify-center gap-1 border ${
-                                isSelected ? p.active : 'text-slate-600 border-slate-800/50 bg-slate-900/50 hover:bg-slate-900'
-                              }`}
-                            >
-                              <ChannelPlatformIcon id={p.id} className="w-3 h-3" />
-                              <span className="truncate w-full px-1">{p.id === 'X (Twitter)' ? 'X' : p.id}</span>
-                            </button>
-                          );
-                        })}
+                        
+                        <button
+                          onClick={() => {
+                            const currentIdx = CHANNELS.findIndex(c => c.id === link.platform);
+                            const nextIdx = (currentIdx + 1) % CHANNELS.length;
+                            updatePlatform(idx, CHANNELS[nextIdx].id as SocialPlatform);
+                          }}
+                          className={`shrink-0 px-2 py-1 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 border transition-all active:scale-95 ${
+                            CHANNELS.find(c => c.id === link.platform)?.color || 'text-slate-400 border-slate-800 bg-slate-900'
+                          }`}
+                          title="Klik untuk ganti platform manual"
+                        >
+                          <ChannelPlatformIcon id={link.platform} className="w-3 h-3" />
+                          <span className="hidden xs:inline">{link.platform === 'X (Twitter)' ? 'X' : link.platform}</span>
+                        </button>
                       </div>
                     </div>
                   ))}
