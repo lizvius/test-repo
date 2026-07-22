@@ -285,38 +285,32 @@ const ReportListCard: React.FC<{ rep: DailyReport, isAdminOrOwner: boolean, onUp
           {rep.applicantWhatsapp || 'Tanpa No WA'}
         </span>
         <div className="flex items-center gap-2">
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
-            rep.result === 'ACC'
-              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-              : rep.result === 'REJECT'
-              ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-              : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-          }`}>
-            {rep.result || 'Pending'}
-          </span>
-          {isAdminOrOwner && rep.result !== 'ACC' && (
-             <button
-                onClick={() => onUpdateStatus(rep.reportId || '', 'ACC')}
-                className="px-2 py-0.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold"
-             >
-               ACC
-             </button>
-          )}
-          {isAdminOrOwner && rep.result !== 'REJECT' && (
-             <button
-                onClick={() => onUpdateStatus(rep.reportId || '', 'REJECT')}
-                className="px-2 py-0.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 text-[10px] font-bold"
-             >
-               Reject
-             </button>
-          )}
-          {isAdminOrOwner && rep.result !== 'Pending' && (
-             <button
-                onClick={() => onUpdateStatus(rep.reportId || '', 'Pending')}
-                className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 text-[10px] font-bold"
-             >
-               Pending
-             </button>
+          {isAdminOrOwner ? (
+            <select
+              value={rep.result || 'Pending'}
+              onChange={(e) => onUpdateStatus(rep.reportId || '', e.target.value as 'Pending' | 'ACC' | 'REJECT')}
+              className={`px-2 py-0.5 rounded-full text-[10px] font-black border outline-none appearance-none cursor-pointer ${
+                rep.result === 'ACC'
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                  : rep.result === 'REJECT'
+                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                  : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+              }`}
+            >
+              <option value="Pending" className="bg-slate-900 text-amber-400">Pending</option>
+              <option value="ACC" className="bg-slate-900 text-emerald-400">ACC</option>
+              <option value="REJECT" className="bg-slate-900 text-rose-400">REJECT</option>
+            </select>
+          ) : (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+              rep.result === 'ACC'
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                : rep.result === 'REJECT'
+                ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+            }`}>
+              {rep.result || 'Pending'}
+            </span>
           )}
         </div>
       </div>
