@@ -37,11 +37,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
+    // Support browser-based simulation testing for AI Studio preview / standard browser
+    const simulatedUserStr = localStorage.getItem('azurlize_simulated_user');
+
+    // Wait for Telegram Script to load completely if not using simulated user
+    if (!simulatedUserStr) {
+      await new Promise<void>((resolve) => {
+        const checkStart = Date.now();
+        const interval = setInterval(() => {
+          const wa = typeof window !== 'undefined' && window.Telegram?.WebApp;
+          // Consider WebApp fully loaded if platform or initData is available
+          if (wa && (wa.initData || wa.initDataUnsafe?.user || wa.platform)) {
+            clearInterval(interval);
+            resolve();
+          } else if (Date.now() - checkStart > 1200) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 50);
+      });
+    }
+
     const webApp = getTelegramWebApp();
     const inTelegram = isTelegramEnvironment();
 
-    // Support browser-based simulation testing for AI Studio preview / standard browser
-    const simulatedUserStr = localStorage.getItem('azurlize_simulated_user');
 
     if (!inTelegram && simulatedUserStr) {
       try {
@@ -101,7 +120,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    const initData = webApp.initData;
+    let initData = webApp.initData;
+
+    // Fallback: Construct synthetic initData if standard initData is empty but initDataUnsafe.user is populated
+    if ((!initData || initData.trim() === '') && webApp.initDataUnsafe?.user) {
+      const userObj = webApp.initDataUnsafe.user;
+      const userParam = encodeURIComponent(JSON.stringify(userObj));
+      initData = `user=${userParam}&hash=synthetic_hash_fallback_development`;
+    }
 
     try {
       // Verify initData with Express Backend API

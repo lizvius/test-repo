@@ -11,8 +11,8 @@ const app = express();
 const PORT = 3000;
 
 // TODO: Configure TELEGRAM_BOT_TOKEN in .env for production verification
-const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-const JWT_SECRET = process.env.JWT_SECRET || 'azurlizeteam_secret_jwt_key_2026';
+const TELEGRAM_BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || '').trim().replace(/^["']|["']$/g, '');
+const JWT_SECRET = (process.env.JWT_SECRET || 'azurlizeteam_secret_jwt_key_2026').trim().replace(/^["']|["']$/g, '');
 
 app.use(express.json());
 

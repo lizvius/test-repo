@@ -79,7 +79,11 @@ export function getTelegramWebApp() {
 
 export function isTelegramEnvironment(): boolean {
   const webApp = getTelegramWebApp();
-  return Boolean(webApp && webApp.initData && webApp.initData.length > 0);
+  return Boolean(
+    webApp &&
+    ((webApp.initData && webApp.initData.length > 0) ||
+      (webApp.initDataUnsafe && Object.keys(webApp.initDataUnsafe).length > 0))
+  );
 }
 
 export function getTelegramUser(): TelegramUser | null {

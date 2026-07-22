@@ -62,13 +62,13 @@ export const LaporanHarianPage: React.FC = () => {
       className="space-y-5 pb-28"
     >
       <div className="space-y-1">
-        <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2">
+        <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
           <div className="p-2 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
             <FileText className="w-5 h-5" />
           </div>
           <span>Form Laporan Harian</span>
         </h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-slate-400">
           Masukkan metrik rekrutmen harian Anda secara akurat.
         </p>
       </div>
@@ -157,7 +157,7 @@ export const LaporanHarianPage: React.FC = () => {
           />
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-bold tracking-wider text-slate-500 dark:text-slate-300 uppercase px-1">
+            <label className="text-xs font-bold tracking-wider text-slate-400 uppercase px-1">
               Keterangan / Catatan Laporan
             </label>
             <textarea
@@ -165,7 +165,7 @@ export const LaporanHarianPage: React.FC = () => {
               placeholder="Tuliskan catatan postingan, kendala, atau keterangan tambahan..."
               value={formData.note}
               onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-              className="w-full rounded-2xl py-3 px-4 text-sm font-medium outline-none border border-slate-200 dark:border-slate-700/60 bg-white/85 dark:bg-slate-900/80 focus:border-sky-500 dark:focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 text-slate-800 dark:text-white transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
+              className="w-full rounded-2xl py-3 px-4 text-sm font-medium outline-none border border-slate-800 bg-slate-900/80 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-white transition-all placeholder:text-slate-500"
             />
           </div>
 
