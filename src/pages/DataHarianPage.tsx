@@ -126,6 +126,7 @@ const parseTelegramUsername = (raw?: string) => {
 const checkTelegramAvailability = async (cleanUsername: string): Promise<{
   exists: boolean;
   title?: string;
+  photoUrl?: string;
   isSyntaxValid: boolean;
   message?: string;
 }> => {
@@ -178,9 +179,27 @@ const checkTelegramAvailability = async (cleanUsername: string): Promise<{
       }
     }
 
+    // Extract profile photo URL if available
+    let photoUrl: string | undefined = undefined;
+    const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["'](.*?)["']/i) ||
+                         html.match(/<meta\s+content=["'](.*?)["']\s+property=["']og:image["']/i);
+    if (ogImageMatch && ogImageMatch[1]) {
+      const candidate = ogImageMatch[1];
+      if (!candidate.includes('telegram-logo') && !candidate.includes('static/images/telegram')) {
+        photoUrl = candidate;
+      }
+    }
+    if (!photoUrl) {
+      const imgMatch = html.match(/<img[^>]*class=["'][^"']*tgme_page_photo_image[^"']*["'][^>]*src=["'](.*?)["']/i);
+      if (imgMatch && imgMatch[1]) {
+        photoUrl = imgMatch[1];
+      }
+    }
+
     return {
       exists: true,
       title: extractedTitle,
+      photoUrl,
       isSyntaxValid: true,
       message: `Username @${cleanUsername} terdaftar aktif.`
     };
@@ -254,6 +273,7 @@ export const DataHarianPage: React.FC = () => {
   const [tgStatus, setTgStatus] = useState<{
     status: 'idle' | 'checking' | 'exists' | 'not_found' | 'invalid_syntax';
     title?: string;
+    photoUrl?: string;
     message?: string;
   }>({ status: 'idle' });
 
@@ -292,6 +312,7 @@ export const DataHarianPage: React.FC = () => {
         setTgStatus({
           status: 'exists',
           title: result.title || `@${cleanTg}`,
+          photoUrl: result.photoUrl,
           message: `Username @${cleanTg} terdaftar aktif di Telegram.`
         });
       }
@@ -701,22 +722,44 @@ export const DataHarianPage: React.FC = () => {
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-sky-950/80 to-slate-900 border border-emerald-500/50 flex items-center justify-between gap-3 shadow-xl"
+                className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/90 via-sky-950/80 to-slate-900 border border-emerald-500/50 flex items-center justify-between gap-3 shadow-xl"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-sky-500 flex items-center justify-center text-slate-950 shadow-md shrink-0 font-bold">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
+                  {tgStatus.photoUrl ? (
+                    <div className="relative shrink-0">
+                      <img
+                        src={tgStatus.photoUrl}
+                        alt={tgStatus.title || cleanTg}
+                        referrerPolicy="no-referrer"
+                        className="w-12 h-12 rounded-full object-cover border-2 border-emerald-400 shadow-lg ring-2 ring-emerald-500/20"
+                        onError={(e) => {
+                          // Fallback if image fails to load
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-900 flex items-center justify-center">
+                        <Check className="w-2.5 h-2.5 text-slate-950 font-black" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-emerald-500 to-sky-500 flex items-center justify-center text-slate-950 shadow-md shrink-0 font-bold border-2 border-emerald-400">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                  )}
+
                   <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-black text-white font-mono">{formattedTg}</span>
                       <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold flex items-center gap-1">
                         <Check className="w-2.5 h-2.5 text-emerald-400" />
                         Terdaftar Aktif
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-300">
-                      Profil: <strong className="text-white font-mono">{tgStatus.title || formattedTg}</strong> • Link: <span className="text-sky-300 font-mono">{tgUrl}</span>
+                    <p className="text-[11px] font-bold text-white">
+                      {tgStatus.title || formattedTg}
+                    </p>
+                    <p className="text-[10px] text-slate-400 font-mono">
+                      Link: <span className="text-sky-300">{tgUrl}</span>
                     </p>
                   </div>
                 </div>
