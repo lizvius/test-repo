@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(telegramId) {
+      return isSignedIn() && (request.auth.uid == telegramId || request.auth.token.telegramId == telegramId);
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdminOrOwner() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        (getUserData().role == 'Admin' || getUserData().role == 'Owner');
+    }
+
+    function isSystemOwner() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+        getUserData().role == 'Owner';
+    }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users Collection
+    match /users/{telegramId} {
+      // User can read their own document, Admins and Owners can read any user document
+      allow get: if isSignedIn() && (request.auth.uid == telegramId || isAdminOrOwner());
+      allow list: if isAdminOrOwner();
+
+      // Anyone can create their initial registration document, but MUST set role='Recruiter' and status='Pending'
+      allow create: if isSignedIn() && 
+        request.auth.uid == telegramId && 
+        request.resource.data.role == 'Recruiter' && 
+        request.resource.data.status == 'Pending' && 
+        request.resource.data.approved == false;
+
+      // User can update their non-role fields (email, whatsapp, akun9Kucing)
+      // Admins and Owners can update any user's role and status
+      allow update: if isSignedIn() && (
+        (request.auth.uid == telegramId && 
+         request.resource.data.role == resource.data.role && 
+         request.resource.data.status == resource.data.status && 
+         request.resource.data.approved == resource.data.approved) ||
+        isAdminOrOwner()
+      );
+
+      allow delete: if isSystemOwner();
+    }
+
+    // Daily Reports Collection
+    match /daily_reports/{reportId} {
+      // Users can read their own reports, Admins/Owners can read all reports
+      allow get, list: if isSignedIn() && (
+        resource.data.telegramId == request.auth.uid || isAdminOrOwner()
+      );
+
+      // Recruiter can create a daily report for themselves
+      allow create: if isSignedIn() && 
+        request.resource.data.telegramId == request.auth.uid;
+
+      // Users can edit their own report within 24h, Admins can manage
+      allow update, delete: if isSignedIn() && (
+        resource.data.telegramId == request.auth.uid || isAdminOrOwner()
+      );
+    }
+
+    // Announcements Collection
+    match /announcements/{announcementId} {
+      // All authenticated active users can read announcements
+      allow read: if isSignedIn();
+      // Only Admin or Owner can create, update, or delete announcements
+      allow write: if isAdminOrOwner();
+    }
+
+    // Settings Collection
+    match /settings/{settingId} {
+      // All authenticated users can read system settings
+      allow read: if isSignedIn();
+      // Only Owner can modify settings
+      allow write: if isSystemOwner();
+    }
+  }
+}
