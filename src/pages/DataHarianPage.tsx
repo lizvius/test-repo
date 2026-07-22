@@ -122,7 +122,7 @@ const parseTelegramUsername = (raw?: string) => {
   };
 };
 
-// Real-time Telegram Username Availability Checker
+// Real-time Telegram Username Availability Checker (Ultra-fast parallel check)
 const checkTelegramAvailability = async (cleanUsername: string): Promise<{
   exists: boolean;
   title?: string;
@@ -144,69 +144,99 @@ const checkTelegramAvailability = async (cleanUsername: string): Promise<{
     };
   }
 
+  const unavatarUrl = `https://unavatar.io/telegram/${cleanUsername}?fallback=false`;
+
   try {
     const targetUrl = `https://t.me/${cleanUsername}`;
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-    
-    const response = await fetch(proxyUrl, { method: 'GET' });
-    if (!response.ok) {
-      return { exists: true, isSyntaxValid: true, title: `@${cleanUsername}` };
-    }
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2200);
 
-    const data = await response.json();
-    const html: string = data.contents || '';
+    // Run CORS proxy requests in parallel race/any for sub-second response
+    const fetchHtml = async (): Promise<string | null> => {
+      const p1 = fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`, { signal: controller.signal })
+        .then(async (r) => (r.ok ? await r.text() : Promise.reject('p1 error')));
 
-    // Check indicators in Telegram's web profile page
-    const isUserNotFoundMsg = html.includes('User not found') || html.includes('Page not found');
-    const isNotFoundText = html.includes('If you have <strong>Telegram</strong>, you can contact') || html.includes('If you have Telegram, you can contact');
-    const hasPageTitle = html.includes('tgme_page_title') || html.includes('tgme_page_extra');
+      const p2 = fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`, { signal: controller.signal })
+        .then(async (r) => {
+          if (!r.ok) throw new Error('p2 error');
+          const j = await r.json();
+          return j.contents || '';
+        });
 
-    if (isUserNotFoundMsg || (isNotFoundText && !hasPageTitle)) {
+      try {
+        const html = await Promise.any([p1, p2]);
+        clearTimeout(timeoutId);
+        return html;
+      } catch {
+        clearTimeout(timeoutId);
+        return null;
+      }
+    };
+
+    const html = await fetchHtml();
+
+    if (html) {
+      // Check indicators in Telegram's web profile page
+      const isUserNotFoundMsg = html.includes('User not found') || html.includes('Page not found');
+      const isNotFoundText = html.includes('If you have <strong>Telegram</strong>, you can contact') || html.includes('If you have Telegram, you can contact');
+      const hasPageTitle = html.includes('tgme_page_title') || html.includes('tgme_page_extra');
+
+      if (isUserNotFoundMsg || (isNotFoundText && !hasPageTitle)) {
+        return {
+          exists: false,
+          isSyntaxValid: true,
+          message: `Username @${cleanUsername} TIDAK TERDAFTAR di Telegram.`
+        };
+      }
+
+      // Extract real display name if available
+      let extractedTitle = `@${cleanUsername}`;
+      const titleMatch = html.match(/<div class="tgme_page_title"[^>]*><span[^>]*>(.*?)<\/span><\/div>/s) || html.match(/<meta property="og:title" content="(.*?)"/);
+      if (titleMatch && titleMatch[1]) {
+        const cleanTitle = titleMatch[1].replace(/<[^>]+>/g, '').trim();
+        if (cleanTitle && !cleanTitle.toLowerCase().includes('telegram: contact')) {
+          extractedTitle = cleanTitle;
+        }
+      }
+
+      // Extract profile photo URL if available
+      let photoUrl: string | undefined = undefined;
+      const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["'](.*?)["']/i) ||
+                           html.match(/<meta\s+content=["'](.*?)["']\s+property=["']og:image["']/i);
+      if (ogImageMatch && ogImageMatch[1]) {
+        const candidate = ogImageMatch[1];
+        if (!candidate.includes('telegram-logo') && !candidate.includes('static/images/telegram')) {
+          photoUrl = candidate;
+        }
+      }
+      if (!photoUrl) {
+        const imgMatch = html.match(/<img[^>]*class=["'][^"']*tgme_page_photo_image[^"']*["'][^>]*src=["'](.*?)["']/i);
+        if (imgMatch && imgMatch[1]) {
+          photoUrl = imgMatch[1];
+        }
+      }
+
       return {
-        exists: false,
+        exists: true,
+        title: extractedTitle,
+        photoUrl: photoUrl || unavatarUrl,
         isSyntaxValid: true,
-        message: `Username @${cleanUsername} TIDAK TERDAFTAR di Telegram.`
+        message: `Username @${cleanUsername} terdaftar aktif.`
       };
     }
 
-    // Extract real display name if available
-    let extractedTitle = `@${cleanUsername}`;
-    const titleMatch = html.match(/<div class="tgme_page_title"[^>]*><span[^>]*>(.*?)<\/span><\/div>/s) || html.match(/<meta property="og:title" content="(.*?)"/);
-    if (titleMatch && titleMatch[1]) {
-      const cleanTitle = titleMatch[1].replace(/<[^>]+>/g, '').trim();
-      if (cleanTitle && !cleanTitle.toLowerCase().includes('telegram: contact')) {
-        extractedTitle = cleanTitle;
-      }
-    }
-
-    // Extract profile photo URL if available
-    let photoUrl: string | undefined = undefined;
-    const ogImageMatch = html.match(/<meta\s+property=["']og:image["']\s+content=["'](.*?)["']/i) ||
-                         html.match(/<meta\s+content=["'](.*?)["']\s+property=["']og:image["']/i);
-    if (ogImageMatch && ogImageMatch[1]) {
-      const candidate = ogImageMatch[1];
-      if (!candidate.includes('telegram-logo') && !candidate.includes('static/images/telegram')) {
-        photoUrl = candidate;
-      }
-    }
-    if (!photoUrl) {
-      const imgMatch = html.match(/<img[^>]*class=["'][^"']*tgme_page_photo_image[^"']*["'][^>]*src=["'](.*?)["']/i);
-      if (imgMatch && imgMatch[1]) {
-        photoUrl = imgMatch[1];
-      }
-    }
-
+    // Fallback if proxy timed out or failed
     return {
       exists: true,
-      title: extractedTitle,
-      photoUrl,
-      isSyntaxValid: true,
-      message: `Username @${cleanUsername} terdaftar aktif.`
+      title: `@${cleanUsername}`,
+      photoUrl: unavatarUrl,
+      isSyntaxValid: true
     };
   } catch {
     return {
       exists: true,
       title: `@${cleanUsername}`,
+      photoUrl: unavatarUrl,
       isSyntaxValid: true
     };
   }
@@ -316,7 +346,7 @@ export const DataHarianPage: React.FC = () => {
           message: `Username @${cleanTg} terdaftar aktif di Telegram.`
         });
       }
-    }, 450);
+    }, 150);
 
     return () => clearTimeout(timer);
   }, [formData.applicantTelegramUsername]);
