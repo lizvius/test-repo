@@ -59,23 +59,37 @@ export interface DailyReport {
   username: string;
   name: string;
   date: string; // YYYY-MM-DD
-  visit: number;
-  applicant: number;
-  quality: number;
-  posting: number;
-  permission: number;
-  note: string;
+  recruiterUsername?: string;
+  channel?: string;
+  applicantWhatsapp?: string;
+  uid9Kucing?: string;
+  applicantTelegramUsername?: string;
+  result?: 'Pending' | 'ACC' | 'REJECT';
+  grup?: 'T0' | 'V0' | 'T3';
+  visit?: number;
+  applicant?: number;
+  quality?: number;
+  posting?: number;
+  permission?: number;
+  note?: string;
   createdAt: string;
 }
 
 export interface DailyReportFormData {
   date: string;
-  visit: number;
-  applicant: number;
-  quality: number;
-  posting: number;
-  permission: number;
-  note: string;
+  recruiterUsername?: string;
+  channel?: string;
+  applicantWhatsapp?: string;
+  uid9Kucing?: string;
+  applicantTelegramUsername?: string;
+  result?: 'Pending' | 'ACC' | 'REJECT';
+  grup?: 'T0' | 'V0' | 'T3';
+  visit?: number;
+  applicant?: number;
+  quality?: number;
+  posting?: number;
+  permission?: number;
+  note?: string;
 }
 
 export interface Announcement {
