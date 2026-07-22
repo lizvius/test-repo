@@ -19,7 +19,7 @@ export const Header: React.FC<HeaderProps> = ({ title, showUserBadge = true }) =
       }}
       className="sticky top-0 z-30 w-full backdrop-blur-xl border-b px-4 md:px-6 py-3 pt-safe transition-colors duration-300"
     >
-      <div className="max-w-md md:max-w-xl lg:max-w-2xl xl:max-w-3xl mx-auto flex items-center justify-between gap-3">
+      <div className="w-full max-w-7xl mx-auto flex items-center justify-between gap-3">
 
         {title ? (
           <div className="flex items-center gap-3">

@@ -40,7 +40,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
         style={{
           backgroundColor: 'var(--tg-secondary-bg-color, var(--tg-bg-color, rgba(15, 23, 42, 0.95)))'
         }}
-        className="max-w-md md:max-w-lg lg:max-w-xl mx-auto pointer-events-auto backdrop-blur-2xl border border-slate-200 dark:border-white/15 rounded-3xl p-1.5 md:p-2 shadow-2xl flex items-center justify-around shadow-sky-500/10 transition-colors duration-300"
+        className="w-full max-w-3xl mx-auto pointer-events-auto backdrop-blur-2xl border border-slate-200 dark:border-white/15 rounded-3xl p-1.5 md:p-2 shadow-2xl flex items-center justify-around shadow-sky-500/10 transition-colors duration-300"
       >
         {navItems.map((item) => {
           const Icon = item.icon;
