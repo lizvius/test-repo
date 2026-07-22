@@ -3,7 +3,7 @@ import { LayoutGrid, CalendarClock, ClipboardPen, Clock3, UserCheck, ShieldCheck
 import { triggerHaptic } from '../../telegram/webapp';
 import { useAuth } from '../../hooks/useAuth';
 
-export type TabType = 'beranda' | 'laporan' | 'data_harian' | 'riwayat' | 'profil' | 'admin' | 'owner' | 'pengumuman';
+export type TabType = 'beranda' | 'postingan' | 'laporan' | 'data_harian' | 'riwayat' | 'profil' | 'admin' | 'owner' | 'pengumuman';
 
 interface BottomNavProps {
   activeTab: TabType;
@@ -22,6 +22,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
 
   const navItems = [
     { id: 'beranda' as TabType, label: 'Beranda', icon: LayoutGrid },
+    { id: 'postingan' as TabType, label: 'Postingan', icon: ClipboardPen },
     { id: 'data_harian' as TabType, label: 'Data Harian', icon: CalendarClock },
     { id: 'laporan' as TabType, label: 'Laporan', icon: ClipboardPen },
     { id: 'riwayat' as TabType, label: 'Riwayat', icon: Clock3 },

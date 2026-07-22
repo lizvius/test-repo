@@ -13,6 +13,7 @@ import { DataHarianPage } from './pages/DataHarianPage';
 import { LaporanHarianPage } from './pages/LaporanHarianPage';
 import { RiwayatLaporanPage } from './pages/RiwayatLaporanPage';
 import { PengumumanPage } from './pages/PengumumanPage';
+import { PostinganPage } from './pages/PostinganPage';
 import { ProfilPage } from './pages/ProfilPage';
 import { AdminPage } from './pages/AdminPage';
 import { OwnerPage } from './pages/OwnerPage';
@@ -95,6 +96,8 @@ const AppContent: React.FC = () => {
     switch (activeTab) {
       case 'beranda':
         return <DashboardPage setActiveTab={setActiveTab} />;
+      case 'postingan':
+        return <PostinganPage />;
       case 'data_harian':
         return <DataHarianPage />;
       case 'laporan':

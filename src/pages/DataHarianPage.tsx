@@ -581,7 +581,7 @@ export const DataHarianPage: React.FC = () => {
         recruiterUsername: autoRecruiterUsername, // Ensure auto set recruiter username
         applicantTelegramUsername: finalTg,
         // Result is strictly 'Pending', Admin/Owner can set custom result later from the list
-        result: 'Pending',
+        result: 'Pending' as 'Pending' | 'ACC' | 'REJECT',
         grup: targetGrup
       };
 

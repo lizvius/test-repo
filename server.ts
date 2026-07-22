@@ -198,6 +198,91 @@ app.post('/api/sheets/sync-report', async (req: Request, res: Response) => {
   }
 });
 
+// API Endpoint: Send Post (Multiple Images) to Telegram Group
+app.post('/api/telegram/send-post', async (req: Request, res: Response) => {
+  try {
+    const { caption, images, recruiterName, recruiterUsername } = req.body;
+    
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      res.status(400).json({ success: false, error: 'Setidaknya satu gambar diperlukan.' });
+      return;
+    }
+
+    const targetGroup = process.env.TELEGRAM_GROUP_ID || '';
+    const targetTopic = process.env.TELEGRAM_TOPIC_ID || '';
+
+    if (!targetGroup) {
+      res.status(400).json({ success: false, error: 'ID Grup Telegram belum dikonfigurasi.' });
+      return;
+    }
+
+    if (!TELEGRAM_BOT_TOKEN) {
+      res.status(400).json({ success: false, error: 'Token Bot Telegram tidak dikonfigurasi.' });
+      return;
+    }
+
+    const recTag = recruiterUsername ? `@${recruiterUsername.replace(/^@/, '')}` : recruiterName;
+    const fullCaption = `
+📸 <b>POSTINGAN REKRUITER</b>
+
+👤 <b>Recruiter:</b> ${recTag}
+💬 <b>Caption:</b>
+${caption}
+
+#Posting #Recruitment
+`.trim();
+
+    const formData = new FormData();
+    formData.append('chat_id', targetGroup);
+    if (targetTopic) {
+      formData.append('message_thread_id', String(targetTopic));
+    }
+
+    // Process images
+    const mediaArray = [];
+    
+    for (let i = 0; i < images.length; i++) {
+      const dataUrl = images[i];
+      const match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
+      
+      if (match) {
+        const mimeType = match[1];
+        const base64Data = match[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const blob = new Blob([buffer], { type: mimeType });
+        
+        const fileKey = `photo${i}`;
+        formData.append(fileKey, blob, `post_${Date.now()}_${i}.jpg`);
+        
+        mediaArray.push({
+          type: 'photo',
+          media: `attach://${fileKey}`,
+          caption: i === 0 ? fullCaption : '', // Caption only on the first photo
+          parse_mode: 'HTML'
+        });
+      }
+    }
+
+    formData.append('media', JSON.stringify(mediaArray));
+
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMediaGroup`, {
+      method: 'POST',
+      body: formData
+    });
+
+    const result = await response.json();
+    if (result.ok) {
+      res.json({ success: true, data: result.result });
+    } else {
+      console.error('[Telegram API] sendMediaGroup Error:', result);
+      res.status(400).json({ success: false, error: result.description || 'Gagal mengirim postingan ke Telegram' });
+    }
+  } catch (err) {
+    console.error('[Telegram API] Error sending post:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Gagal mengirim postingan' });
+  }
+});
+
 // API Endpoint: Send Daily Report & Video directly to Telegram Group Topic
 app.post('/api/telegram/send-report', async (req: Request, res: Response) => {
   try {
