@@ -16,6 +16,11 @@ export async function verifyTelegramInitDataApi(initData: string): Promise<ApiRe
       body: JSON.stringify({ initData })
     });
 
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return { success: false, error: `Auth server error (${response.status}).` };
+    }
+
     const data = await response.json();
     return data;
   } catch (err) {
@@ -36,6 +41,11 @@ export async function verifySessionApi(token: string): Promise<ApiResponse> {
       }
     });
 
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return { success: false, error: `Session verification error (${response.status}).` };
+    }
+
     const data = await response.json();
     return data;
   } catch (err) {
@@ -49,6 +59,12 @@ export async function verifySessionApi(token: string): Promise<ApiResponse> {
 export async function getGoogleSheetInfoApi(): Promise<ApiResponse<{ id: string; url: string }>> {
   try {
     const response = await fetch(`${API_BASE_URL}/api/sheets/info`);
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return { success: false, error: `Sheets service error (${response.status}).` };
+    }
+
     const data = await response.json();
     return data;
   } catch (err) {
@@ -68,6 +84,12 @@ export async function syncUserToSheetsApi(user: unknown): Promise<ApiResponse<{ 
       },
       body: JSON.stringify({ user })
     });
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return { success: false, error: `Sheets sync error (${response.status}).` };
+    }
+
     const data = await response.json();
     return data;
   } catch (err) {
@@ -87,6 +109,12 @@ export async function syncReportToSheetsApi(report: unknown): Promise<ApiRespons
       },
       body: JSON.stringify({ report })
     });
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return { success: false, error: `Report sync error (${response.status}).` };
+    }
+
     const data = await response.json();
     return data;
   } catch (err) {
@@ -111,6 +139,15 @@ export async function sendReportToTelegramApi(
       },
       body: JSON.stringify({ report, videoDataUrl, groupId, topicId })
     });
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      if (response.status === 413) {
+        return { success: false, error: 'Ukuran video/data terlalu besar (Maksimal 4.5MB). Mohon gunakan video yang lebih pendek atau resolusi lebih rendah.' };
+      }
+      return { success: false, error: `Server error (${response.status}). Mohon coba lagi nanti.` };
+    }
+
     const data = await response.json();
     return data;
   } catch (err) {

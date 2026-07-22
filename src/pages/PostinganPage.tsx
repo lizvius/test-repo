@@ -281,6 +281,39 @@ export const PostinganPage: React.FC = () => {
     triggerHaptic('selection');
   };
 
+  const compressImage = (base64: string, quality: number = 0.7): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Target resolution for Telegram
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1280;
+        
+        if (width > height) {
+          if (width > maxDim) {
+            height *= maxDim / width;
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width *= maxDim / height;
+            height = maxDim;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+    });
+  };
+
   const handleSubmit = async () => {
     const validLinks = links.filter(l => l.url.trim() !== '');
     if (validLinks.length === 0) {
@@ -316,19 +349,35 @@ export const PostinganPage: React.FC = () => {
       const recruiterName = `${userProfile?.firstName} ${userProfile?.lastName || ''}`.trim();
       const recruiterUsername = userProfile?.username || telegramUser?.username;
       
+      // Compress all images
+      setStatus({ type: 'idle', message: 'Sedang mengompres gambar...' });
+      const compressedImages = await Promise.all(images.map(img => compressImage(img)));
+      
       const response = await fetch('/api/telegram/send-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           links: validLinks.map(l => l.url),
           startNumber,
-          images,
+          images: compressedImages,
           recruiterName,
           recruiterUsername,
           groupId: settings?.telegramGroupId,
           topicId: settings?.telegramTopicPosting
         })
       });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response from server:', text);
+        
+        if (response.status === 413) {
+          throw new Error('Ukuran data terlalu besar (Maksimal 4.5MB). Coba kurangi jumlah gambar atau gunakan gambar dengan ukuran lebih kecil.');
+        }
+        
+        throw new Error(`Server error (${response.status}). Mohon coba lagi nanti.`);
+      }
 
       const result = await response.json();
       if (result.success) {
