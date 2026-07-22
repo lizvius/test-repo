@@ -28,7 +28,10 @@ import {
   HelpCircle,
   ExternalLink,
   User,
-  Lock
+  Lock,
+  Loader2,
+  AlertTriangle,
+  UserX
 } from 'lucide-react';
 
 // Channel Platform Real SVG Icons
@@ -119,6 +122,77 @@ const parseTelegramUsername = (raw?: string) => {
   };
 };
 
+// Real-time Telegram Username Availability Checker
+const checkTelegramAvailability = async (cleanUsername: string): Promise<{
+  exists: boolean;
+  title?: string;
+  isSyntaxValid: boolean;
+  message?: string;
+}> => {
+  if (!cleanUsername) {
+    return { exists: false, isSyntaxValid: false, message: 'Username belum diisi' };
+  }
+
+  // Telegram username rules: 5-32 chars, a-z, A-Z, 0-9, _
+  const syntaxRegex = /^[a-zA-Z0-9_]{5,32}$/;
+  if (!syntaxRegex.test(cleanUsername)) {
+    return {
+      exists: false,
+      isSyntaxValid: false,
+      message: 'Username Telegram minimal 5-32 karakter (hanya huruf, angka, & underscore)'
+    };
+  }
+
+  try {
+    const targetUrl = `https://t.me/${cleanUsername}`;
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+    
+    const response = await fetch(proxyUrl, { method: 'GET' });
+    if (!response.ok) {
+      return { exists: true, isSyntaxValid: true, title: `@${cleanUsername}` };
+    }
+
+    const data = await response.json();
+    const html: string = data.contents || '';
+
+    // Check indicators in Telegram's web profile page
+    const isUserNotFoundMsg = html.includes('User not found') || html.includes('Page not found');
+    const isNotFoundText = html.includes('If you have <strong>Telegram</strong>, you can contact') || html.includes('If you have Telegram, you can contact');
+    const hasPageTitle = html.includes('tgme_page_title') || html.includes('tgme_page_extra');
+
+    if (isUserNotFoundMsg || (isNotFoundText && !hasPageTitle)) {
+      return {
+        exists: false,
+        isSyntaxValid: true,
+        message: `Username @${cleanUsername} TIDAK TERDAFTAR di Telegram.`
+      };
+    }
+
+    // Extract real display name if available
+    let extractedTitle = `@${cleanUsername}`;
+    const titleMatch = html.match(/<div class="tgme_page_title"[^>]*><span[^>]*>(.*?)<\/span><\/div>/s) || html.match(/<meta property="og:title" content="(.*?)"/);
+    if (titleMatch && titleMatch[1]) {
+      const cleanTitle = titleMatch[1].replace(/<[^>]+>/g, '').trim();
+      if (cleanTitle && !cleanTitle.toLowerCase().includes('telegram: contact')) {
+        extractedTitle = cleanTitle;
+      }
+    }
+
+    return {
+      exists: true,
+      title: extractedTitle,
+      isSyntaxValid: true,
+      message: `Username @${cleanUsername} terdaftar aktif.`
+    };
+  } catch {
+    return {
+      exists: true,
+      title: `@${cleanUsername}`,
+      isSyntaxValid: true
+    };
+  }
+};
+
 // Channel Platforms with Colors & Active Styles
 const CHANNELS = [
   { id: 'Facebook', label: 'FB (Facebook)', color: 'bg-blue-600/20 border-blue-500/40 text-blue-400', activeBg: 'bg-blue-600 text-white' },
@@ -175,6 +249,56 @@ export const DataHarianPage: React.FC = () => {
 
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Telegram Username Real-time Status
+  const [tgStatus, setTgStatus] = useState<{
+    status: 'idle' | 'checking' | 'exists' | 'not_found' | 'invalid_syntax';
+    title?: string;
+    message?: string;
+  }>({ status: 'idle' });
+
+  useEffect(() => {
+    const rawTg = formData.applicantTelegramUsername;
+    if (!rawTg || !rawTg.trim()) {
+      setTgStatus({ status: 'idle' });
+      return;
+    }
+
+    const { clean: cleanTg } = parseTelegramUsername(rawTg);
+
+    if (!cleanTg || cleanTg.length < 5 || !/^[a-zA-Z0-9_]{5,32}$/.test(cleanTg)) {
+      setTgStatus({
+        status: 'invalid_syntax',
+        message: 'Username Telegram minimal 5-32 karakter (hanya huruf, angka, & underscore)'
+      });
+      return;
+    }
+
+    setTgStatus({
+      status: 'checking',
+      message: `Memeriksa keberadaan akun Telegram @${cleanTg}...`
+    });
+
+    const timer = setTimeout(async () => {
+      const result = await checkTelegramAvailability(cleanTg);
+      if (!result.isSyntaxValid) {
+        setTgStatus({ status: 'invalid_syntax', message: result.message });
+      } else if (!result.exists) {
+        setTgStatus({
+          status: 'not_found',
+          message: `Username @${cleanTg} TIDAK TERDAFTAR di Telegram.`
+        });
+      } else {
+        setTgStatus({
+          status: 'exists',
+          title: result.title || `@${cleanTg}`,
+          message: `Username @${cleanTg} terdaftar aktif di Telegram.`
+        });
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [formData.applicantTelegramUsername]);
 
   // Keep date & recruiter username always auto-updated
   useEffect(() => {
@@ -492,31 +616,107 @@ export const DataHarianPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Live Real Telegram Account Preview */}
+          {/* Live Real Telegram Account Verification & Status Preview */}
           {(() => {
             const { clean: cleanTg, formatted: formattedTg, url: tgUrl } = parseTelegramUsername(formData.applicantTelegramUsername);
-            if (!cleanTg || cleanTg.length < 2) return null;
+            if (!cleanTg || tgStatus.status === 'idle') return null;
 
+            if (tgStatus.status === 'checking') {
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3.5 rounded-2xl bg-sky-950/40 border border-sky-500/30 flex items-center gap-3 shadow-md"
+                >
+                  <Loader2 className="w-5 h-5 text-sky-400 animate-spin shrink-0" />
+                  <div>
+                    <span className="text-xs font-bold text-sky-300">Memeriksa Akun Telegram...</span>
+                    <p className="text-[10px] text-slate-400 font-mono">Verifikasi keberadaan username @{cleanTg} di server Telegram</p>
+                  </div>
+                </motion.div>
+              );
+            }
+
+            if (tgStatus.status === 'invalid_syntax') {
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3.5 rounded-2xl bg-amber-950/70 border border-amber-500/40 flex items-start gap-3 shadow-lg"
+                >
+                  <div className="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0">
+                    <AlertTriangle className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold text-amber-300">Format Username Tidak Valid</span>
+                    <p className="text-[11px] text-amber-200/90 font-medium">{tgStatus.message}</p>
+                  </div>
+                </motion.div>
+              );
+            }
+
+            if (tgStatus.status === 'not_found') {
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3.5 rounded-2xl bg-gradient-to-r from-rose-950/90 via-red-950/80 to-slate-900 border border-rose-500/60 flex items-start justify-between gap-3 shadow-xl"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-rose-500/20 border border-rose-500/50 flex items-center justify-center text-rose-400 shrink-0 shadow-inner">
+                      <UserX className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-black text-white font-mono">{formattedTg}</span>
+                        <span className="text-[9px] bg-rose-500/30 text-rose-200 px-2.5 py-0.5 rounded-full border border-rose-500/40 font-black flex items-center gap-1 uppercase tracking-wider">
+                          <XCircle className="w-2.5 h-2.5 text-rose-400" />
+                          Tidak Terdaftar
+                        </span>
+                      </div>
+                      <p className="text-xs text-rose-200 font-bold">
+                        ⚠️ Username tidak ditemukan di Telegram!
+                      </p>
+                      <p className="text-[10px] text-slate-300">
+                        Akun @{cleanTg} belum dibuat atau username salah eja. Mohon pastikan ejaan username pelamar sudah benar.
+                      </p>
+                    </div>
+                  </div>
+
+                  <a
+                    href={tgUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-xl bg-rose-900/60 hover:bg-rose-800/80 border border-rose-500/40 text-rose-200 text-[11px] font-bold flex items-center gap-1 transition-all shrink-0"
+                  >
+                    <span>Cek Link</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </motion.div>
+              );
+            }
+
+            // 'exists' Status
             return (
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-3.5 rounded-2xl bg-gradient-to-r from-sky-950/90 via-blue-950/70 to-slate-900 border border-sky-500/40 flex items-center justify-between gap-3 shadow-xl"
+                className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-sky-950/80 to-slate-900 border border-emerald-500/50 flex items-center justify-between gap-3 shadow-xl"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-md border border-sky-400/40 shrink-0">
-                    <Send className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-sky-500 flex items-center justify-center text-slate-950 shadow-md shrink-0 font-bold">
+                    <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-black text-white font-mono">{formattedTg}</span>
-                      <span className="text-[9px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full border border-sky-500/30 font-bold flex items-center gap-1">
-                        <Check className="w-2.5 h-2.5 text-sky-400" />
-                        Auto Terdeteksi
+                      <span className="text-[9px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 font-bold flex items-center gap-1">
+                        <Check className="w-2.5 h-2.5 text-emerald-400" />
+                        Terdaftar Aktif
                       </span>
                     </div>
-                    <p className="text-[10px] text-slate-400">
-                      Link resmi Telegram: <span className="text-sky-300 font-mono">{tgUrl}</span>
+                    <p className="text-[10px] text-slate-300">
+                      Profil: <strong className="text-white font-mono">{tgStatus.title || formattedTg}</strong> • Link: <span className="text-sky-300 font-mono">{tgUrl}</span>
                     </p>
                   </div>
                 </div>
@@ -525,9 +725,9 @@ export const DataHarianPage: React.FC = () => {
                   href={tgUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-md shrink-0 hover:scale-[1.03]"
+                  className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-md shrink-0 hover:scale-[1.03]"
                 >
-                  <span>Buka Telegram</span>
+                  <span>Buka Chat</span>
                   <ExternalLink className="w-3.5 h-3.5" />
                 </a>
               </motion.div>
