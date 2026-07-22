@@ -20,15 +20,11 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Health check for Vercel debugging
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', environment: process.env.VERCEL ? 'vercel' : 'local' });
-});
-
-// Global JSON error handler for /api routes
-app.use('/api', (err: any, req: Request, res: Response, next: any) => {
-  console.error('API Error:', err);
-  res.status(err.status || 500).json({
-    success: false,
-    error: err.message || 'Internal Server Error'
+  console.log('[AzurLizeTeam] Health check hit');
+  res.json({ 
+    status: 'ok', 
+    environment: process.env.VERCEL ? 'vercel' : 'local',
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -540,6 +536,23 @@ app.post('/api/telegram/send-report', async (req: Request, res: Response) => {
     console.error('[Telegram API] Error sending report:', err);
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Gagal mengirim laporan ke Telegram' });
   }
+});
+
+// Fallback for unmatched /api routes
+app.all('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `Route ${req.method} ${req.url} not found on this server.`
+  });
+});
+
+// Global JSON error handler for /api routes
+app.use('/api', (err: any, req: Request, res: Response, next: any) => {
+  console.error('API Error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Internal Server Error'
+  });
 });
 
 // Start Express Server and mount Vite Middleware
