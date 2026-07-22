@@ -124,7 +124,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
       className="space-y-5 pb-24"
     >
       {/* Welcome User Banner */}
-      <GlassCard className="relative overflow-hidden border-sky-500/30 bg-gradient-to-br from-slate-900/95 via-slate-900/80 to-blue-950/60 p-5 shadow-2xl">
+      <GlassCard className="relative overflow-hidden border-sky-500/30 bg-gradient-to-br from-sky-100/50 via-sky-50/20 to-white/60 dark:from-slate-900/95 dark:via-slate-900/80 dark:to-blue-950/60 p-5 shadow-2xl">
         <div className="absolute -top-12 -right-12 w-40 h-40 bg-sky-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-indigo-500/15 rounded-full blur-2xl pointer-events-none" />
 
@@ -141,17 +141,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
                 {(userProfile?.firstName?.[0] || telegramUser?.first_name?.[0] || 'A').toUpperCase()}
               </div>
             )}
-            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-950 shadow-md" />
+            <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-[var(--tg-bg-color,#030712)] shadow-md" />
           </div>
 
           <div className="flex flex-col overflow-hidden">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold text-sky-400 tracking-wider uppercase">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold text-sky-500 dark:text-sky-400 tracking-wider uppercase">
               <Sparkles className="w-3.5 h-3.5" /> Selamat Datang 👋
             </div>
-            <h2 className="text-lg font-black text-white truncate tracking-tight mt-0.5">
+            <h2 className="text-lg font-black text-slate-800 dark:text-white truncate tracking-tight mt-0.5">
               {userProfile?.firstName} {userProfile?.lastName}
             </h2>
-            <span className="text-xs text-slate-400 font-medium">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
               @{userProfile?.username || telegramUser?.username || 'no_username'}
             </span>
 
@@ -165,11 +165,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
 
       {/* System Announcement Banner */}
       {announcementHeader && (
-        <GlassCard className="bg-gradient-to-r from-blue-950/60 via-indigo-950/60 to-slate-900/90 p-4 border-blue-500/30 flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-blue-500/20 text-blue-400 shrink-0 border border-blue-500/30">
+        <GlassCard className="bg-gradient-to-r from-blue-50/80 via-indigo-50/60 to-white/90 dark:from-blue-950/60 dark:via-indigo-950/60 dark:to-slate-900/90 p-4 border-blue-500/30 flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-blue-500/20 text-blue-500 dark:text-blue-400 shrink-0 border border-blue-500/30">
             <Megaphone className="w-5 h-5 animate-pulse" />
           </div>
-          <p className="text-xs text-slate-200 font-medium leading-relaxed">
+          <p className="text-xs text-slate-700 dark:text-slate-200 font-medium leading-relaxed">
             {announcementHeader}
           </p>
         </GlassCard>
@@ -178,11 +178,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
       {/* Quick Menu Grid */}
       <div className="space-y-2.5">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-xs font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+          <h3 className="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-sky-500 dark:text-sky-400" />
             <span>Menu Utama Recruiter</span>
           </h3>
-          <span className="text-[10px] text-sky-400/80 font-bold bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+          <span className="text-[10px] text-sky-500 dark:text-sky-400/80 font-bold bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
             AzurLize System
           </span>
         </div>
@@ -195,7 +195,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
                 key={menu.id}
                 hoverable
                 onClick={() => setActiveTab(menu.id)}
-                className="p-4 space-y-3 flex flex-col justify-between group border-white/10 hover:border-sky-500/50 relative overflow-hidden transition-all duration-300 shadow-xl"
+                className="p-4 space-y-3 flex flex-col justify-between group border-slate-200 dark:border-white/10 hover:border-sky-500/50 relative overflow-hidden transition-all duration-300 shadow-xl"
               >
                 {/* Background ambient glow effect on hover */}
                 <div className={`absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-gradient-to-br ${menu.color} opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 pointer-events-none`} />
@@ -205,7 +205,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
                     {/* Glowing halo ring */}
                     <div className={`absolute -inset-1 rounded-2xl bg-gradient-to-r ${menu.color} opacity-40 group-hover:opacity-100 blur transition duration-300`} />
                     
-                    <div className={`w-12 h-12 rounded-2xl bg-slate-950/90 flex items-center justify-center text-white relative border border-white/20 shadow-xl group-hover:scale-105 group-hover:-rotate-3 transition-transform duration-300`}>
+                    <div className={`w-12 h-12 rounded-2xl bg-white dark:bg-slate-950/90 flex items-center justify-center text-slate-800 dark:text-white relative border border-slate-200 dark:border-white/20 shadow-xl group-hover:scale-105 group-hover:-rotate-3 transition-transform duration-300`}>
                       <div className={`w-10 h-10 rounded-xl bg-gradient-to-tr ${menu.color} flex items-center justify-center text-white shadow-md`}>
                         <Icon className="w-5 h-5 drop-shadow-md text-white" />
                       </div>
@@ -213,20 +213,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
                   </div>
 
                   {menu.badge && (
-                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-900/90 text-sky-400 border border-sky-500/30 shadow-md backdrop-blur-md">
+                    <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-900/90 text-sky-600 dark:text-sky-400 border border-slate-200 dark:border-sky-500/30 shadow-sm backdrop-blur-md">
                       {menu.badge}
                     </span>
                   )}
                 </div>
 
                 <div className="relative z-10 pt-1">
-                  <h4 className="text-sm font-black text-white group-hover:text-sky-300 transition-colors flex items-center justify-between">
+                  <h4 className="text-sm font-black text-slate-800 dark:text-white group-hover:text-sky-500 dark:group-hover:text-sky-300 transition-colors flex items-center justify-between">
                     <span>{menu.title}</span>
-                    <div className="p-1 rounded-lg bg-white/5 group-hover:bg-sky-500/20 group-hover:text-sky-300 transition-all">
-                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-sky-300 group-hover:translate-x-0.5 transition-transform" />
+                    <div className="p-1 rounded-lg bg-black/5 dark:bg-white/5 group-hover:bg-sky-500/20 group-hover:text-sky-500 dark:group-hover:text-sky-300 transition-all">
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-sky-500 dark:group-hover:text-sky-300 group-hover:translate-x-0.5 transition-transform" />
                     </div>
                   </h4>
-                  <p className="text-[11px] font-medium text-slate-400 mt-0.5 line-clamp-1">{menu.desc}</p>
+                  <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">{menu.desc}</p>
                 </div>
               </GlassCard>
             );
@@ -236,41 +236,41 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
 
       {/* My Stats Summary Card */}
       <div className="space-y-2.5">
-        <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">
+        <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest px-1">
           Ringkasan Performa Saya
         </h3>
 
-        <GlassCard className="p-4 space-y-4 border-slate-800">
-          <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+        <GlassCard className="p-4 space-y-4 border-slate-200 dark:border-slate-800">
+          <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800/80 pb-3">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-xl bg-blue-500/10 text-blue-400">
+              <div className="p-1.5 rounded-xl bg-blue-500/10 text-blue-500 dark:text-blue-400">
                 <BarChart2 className="w-4 h-4" />
               </div>
-              <span className="text-xs font-bold text-white uppercase tracking-wider">
+              <span className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-wider">
                 Metrik Akumulasi Laporan
               </span>
             </div>
-            <span className="text-[10px] text-slate-300 bg-slate-800 px-2.5 py-1 rounded-full font-semibold border border-slate-700/60 flex items-center gap-1">
-              <TrendingUp className="w-3 h-3 text-emerald-400" /> {reports.length} Laporan
+            <span className="text-[10px] text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full font-semibold border border-slate-200 dark:border-slate-700/60 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3 text-emerald-500 dark:text-emerald-400" /> {reports.length} Laporan
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-center">
-            <div className="bg-slate-900/90 p-3 rounded-2xl border border-slate-800/80">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Kunjungan</span>
-              <span className="text-xl font-black text-blue-400 mt-0.5 block">{totalVisits}</span>
+            <div className="bg-slate-50 dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold uppercase">Kunjungan</span>
+              <span className="text-xl font-black text-blue-600 dark:text-blue-400 mt-0.5 block">{totalVisits}</span>
             </div>
-            <div className="bg-slate-900/90 p-3 rounded-2xl border border-slate-800/80">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Pelamar</span>
-              <span className="text-xl font-black text-sky-400 mt-0.5 block">{totalApplicants}</span>
+            <div className="bg-slate-50 dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold uppercase">Pelamar</span>
+              <span className="text-xl font-black text-sky-600 dark:text-sky-400 mt-0.5 block">{totalApplicants}</span>
             </div>
-            <div className="bg-slate-900/90 p-3 rounded-2xl border border-slate-800/80">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Berkualitas</span>
-              <span className="text-xl font-black text-emerald-400 mt-0.5 block">{totalQuality}</span>
+            <div className="bg-slate-50 dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold uppercase">Berkualitas</span>
+              <span className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-0.5 block">{totalQuality}</span>
             </div>
-            <div className="bg-slate-900/90 p-3 rounded-2xl border border-slate-800/80">
-              <span className="text-[10px] text-slate-400 block font-semibold uppercase">Postingan</span>
-              <span className="text-xl font-black text-indigo-400 mt-0.5 block">{totalPostings}</span>
+            <div className="bg-slate-50 dark:bg-slate-900/90 p-3 rounded-2xl border border-slate-200 dark:border-slate-800/80">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold uppercase">Postingan</span>
+              <span className="text-xl font-black text-indigo-600 dark:text-indigo-400 mt-0.5 block">{totalPostings}</span>
             </div>
           </div>
         </GlassCard>
@@ -280,12 +280,12 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
       {announcements.length > 0 && (
         <div className="space-y-2.5">
           <div className="flex items-center justify-between px-1">
-            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
               Pengumuman Terbaru
             </h3>
             <button
               onClick={() => setActiveTab('pengumuman')}
-              className="text-xs text-sky-400 font-bold hover:underline"
+              className="text-xs text-sky-600 dark:text-sky-400 font-bold hover:underline"
             >
               Lihat Semua &rarr;
             </button>
@@ -293,19 +293,19 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
 
           <div className="space-y-2.5">
             {announcements.slice(0, 2).map((ann) => (
-              <GlassCard key={ann.id} className="p-4 space-y-1.5 border-slate-800">
+              <GlassCard key={ann.id} className="p-4 space-y-1.5 border-slate-200 dark:border-slate-800">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-sky-400">{ann.title}</span>
+                  <span className="text-xs font-bold text-sky-600 dark:text-sky-400">{ann.title}</span>
                   {ann.pinned && (
-                    <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold">
+                    <span className="text-[10px] bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/20 dark:border-amber-500/30 font-semibold">
                       📌 Pinned
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
                   {ann.content}
                 </p>
-                <span className="text-[10px] text-slate-500 block pt-1">
+                <span className="text-[10px] text-slate-400 dark:text-slate-500 block pt-1">
                   Oleh: {ann.author} &bull; {new Date(ann.createdAt).toLocaleDateString('id-ID')}
                 </span>
               </GlassCard>

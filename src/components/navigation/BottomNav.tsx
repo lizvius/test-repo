@@ -35,7 +35,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-40 px-4 md:px-6 pb-safe mb-3 pointer-events-none">
-      <nav className="max-w-md md:max-w-lg lg:max-w-xl mx-auto pointer-events-auto bg-slate-950/90 backdrop-blur-2xl border border-white/15 rounded-3xl p-1.5 md:p-2 shadow-2xl flex items-center justify-around shadow-sky-500/10">
+      <nav 
+        style={{
+          backgroundColor: 'var(--tg-secondary-bg-color, var(--tg-bg-color, rgba(15, 23, 42, 0.95)))'
+        }}
+        className="max-w-md md:max-w-lg lg:max-w-xl mx-auto pointer-events-auto backdrop-blur-2xl border border-slate-200 dark:border-white/15 rounded-3xl p-1.5 md:p-2 shadow-2xl flex items-center justify-around shadow-sky-500/10 transition-colors duration-300"
+      >
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -46,18 +51,18 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
               onClick={() => handleTabClick(item.id)}
               className={`flex flex-col items-center justify-center py-2 px-3 md:px-5 rounded-2xl transition-all duration-300 relative ${
                 isActive
-                  ? 'text-sky-400 font-bold bg-gradient-to-b from-sky-500/20 to-blue-600/10 border border-sky-500/30 shadow-lg shadow-sky-500/15'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+                  ? 'text-sky-500 dark:text-sky-400 font-bold bg-gradient-to-b from-sky-500/20 to-blue-600/10 border border-sky-500/30 shadow-lg shadow-sky-500/15'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5'
               }`}
             >
               <div className="relative flex items-center justify-center">
                 {isActive && (
                   <span className="absolute inset-0 rounded-full bg-sky-400/20 blur-sm -z-10 animate-pulse" />
                 )}
-                <Icon className={`w-5 h-5 md:w-5.5 md:h-5.5 transition-all duration-300 ${isActive ? 'scale-110 text-sky-300 drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]' : 'scale-100'}`} />
+                <Icon className={`w-5 h-5 md:w-5.5 md:h-5.5 transition-all duration-300 ${isActive ? 'scale-110 text-sky-500 dark:text-sky-300 drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]' : 'scale-100'}`} />
               </div>
 
-              <span className={`text-[10px] md:text-xs tracking-tight mt-1 font-bold ${isActive ? 'text-sky-300' : 'text-slate-400'}`}>
+              <span className={`text-[10px] md:text-xs tracking-tight mt-1 font-bold ${isActive ? 'text-sky-500 dark:text-sky-300' : 'text-slate-500 dark:text-slate-400'}`}>
                 {item.label}
               </span>
 

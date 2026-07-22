@@ -50,17 +50,23 @@ const AppContent: React.FC = () => {
   // If status is Rejected or Suspended
   if (userProfile.status === 'Rejected' || userProfile.status === 'Suspended') {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-center">
+      <div
+        style={{
+          backgroundColor: 'var(--tg-bg-color, #030712)',
+          color: 'var(--tg-text-color, #f8fafc)'
+        }}
+        className="min-h-screen flex flex-col items-center justify-center p-4 text-center transition-colors duration-300 bg-mesh-gradient overflow-x-hidden"
+      >
         <GlassCard className="max-w-md w-full space-y-4 border-rose-500/40 p-6">
-          <div className="w-16 h-16 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-3xl font-bold">
+          <div className="w-16 h-16 rounded-full bg-rose-500/20 text-rose-500 dark:text-rose-400 flex items-center justify-center mx-auto text-3xl font-bold">
             <ShieldAlert className="w-8 h-8" />
           </div>
 
-          <h2 className="text-xl font-extrabold text-white">
+          <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">
             Akun Anda {userProfile.status === 'Rejected' ? 'Ditolak' : 'Ditangguhkan (Suspended)'}
           </h2>
 
-          <p className="text-xs text-slate-300 leading-relaxed">
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
             {userProfile.status === 'Rejected'
               ? 'Maaf, pendaftaran Anda sebagai tim rekrutmen AzurLizeTeam tidak dapat disetujui oleh Admin.'
               : 'Akun Anda saat ini ditangguhkan oleh Admin. Silakan hubungi Owner untuk bantuan lebih lanjut.'}
@@ -68,7 +74,7 @@ const AppContent: React.FC = () => {
 
           <button
             onClick={logout}
-            className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-2xl border border-slate-800 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer"
+            className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-slate-300 rounded-2xl border border-slate-200 dark:border-slate-800 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
             <LogOut className="w-4 h-4" /> Keluar Sesi
           </button>

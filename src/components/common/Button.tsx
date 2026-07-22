@@ -36,11 +36,11 @@ export const Button: React.FC<ButtonProps> = ({
       case 'primary':
         return 'bg-gradient-to-r from-blue-600 via-sky-600 to-indigo-600 text-white shadow-lg shadow-blue-500/25 border border-blue-400/30 hover:brightness-110';
       case 'secondary':
-        return 'bg-slate-800/80 text-slate-100 border border-slate-700 hover:bg-slate-700/80 dark:bg-slate-800/80 dark:text-slate-100';
+        return 'bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 dark:text-slate-100 border border-slate-200 dark:border-slate-700';
       case 'danger':
         return 'bg-rose-600 text-white shadow-lg shadow-rose-600/20 border border-rose-400/30 hover:bg-rose-500';
       case 'ghost':
-        return 'bg-transparent text-slate-300 hover:bg-slate-800/40 border border-transparent';
+        return 'bg-transparent text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/40 border border-transparent';
       default:
         return '';
     }

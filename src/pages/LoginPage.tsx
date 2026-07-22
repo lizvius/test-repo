@@ -70,14 +70,20 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 pb-12 pt- safe-top">
+    <div
+      style={{
+        backgroundColor: 'var(--tg-bg-color, #030712)',
+        color: 'var(--tg-text-color, #f8fafc)'
+      }}
+      className="min-h-screen flex flex-col items-center justify-center p-4 pb-12 pt-safe transition-colors duration-300 bg-mesh-gradient overflow-x-hidden"
+    >
       <div className="max-w-md w-full space-y-6">
         <div className="flex flex-col items-center text-center space-y-2">
           <AzurLizeLogo size="lg" />
-          <h1 className="text-xl font-extrabold text-white tracking-tight mt-2">
+          <h1 className="text-xl font-extrabold text-slate-800 dark:text-white tracking-tight mt-2">
             Pendaftaran Recruiter
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Lengkapi formulir di bawah untuk mendaftar sebagai tim rekrutmen AzurLize.
           </p>
         </div>
@@ -85,14 +91,14 @@ export const LoginPage: React.FC = () => {
         <GlassCard className="space-y-5 border-blue-500/20">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs p-3 rounded-2xl flex items-center gap-2">
+              <div className="bg-rose-500/15 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs p-3 rounded-2xl flex items-center gap-2">
                 <span className="font-bold">⚠️</span>
                 <span>{error}</span>
               </div>
             )}
 
             {/* Readonly Telegram User Info Header */}
-            <div className="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 flex items-center gap-3">
+            <div className="bg-slate-50 dark:bg-slate-900/80 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center gap-3">
               {photoUrl ? (
                 <img
                   src={photoUrl}
@@ -105,14 +111,14 @@ export const LoginPage: React.FC = () => {
                 </div>
               )}
               <div className="flex flex-col text-left overflow-hidden">
-                <span className="text-sm font-bold text-white truncate">
+                <span className="text-sm font-bold text-slate-800 dark:text-white truncate">
                   {firstName} {lastName}
                 </span>
-                <span className="text-xs text-sky-400 font-medium">
+                <span className="text-xs text-sky-600 dark:text-sky-400 font-medium">
                   @{username || 'tanpa_username'} &bull; ID: {telegramId}
                 </span>
-                <span className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Terverifikasi oleh Telegram WebApp
+                <span className="text-[10px] text-slate-500 dark:text-slate-500 flex items-center gap-1 mt-0.5">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500 dark:text-emerald-400" /> Terverifikasi oleh Telegram WebApp
                 </span>
               </div>
             </div>
@@ -154,10 +160,10 @@ export const LoginPage: React.FC = () => {
                 type="checkbox"
                 checked={formData.agreedTerms}
                 onChange={(e) => setFormData({ ...formData, agreedTerms: e.target.checked })}
-                className="mt-0.5 rounded-lg bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
+                className="mt-0.5 rounded-lg bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer"
               />
-              <span className="text-xs text-slate-300 leading-relaxed">
-                Saya menyetujui seluruh <span className="text-blue-400 font-semibold">syarat & ketentuan</span> sebagai tim rekrutmen AzurLizeTeam.
+              <span className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                Saya menyetujui seluruh <span className="text-blue-600 dark:text-blue-400 font-semibold">syarat & ketentuan</span> sebagai tim rekrutmen AzurLizeTeam.
               </span>
             </label>
 
