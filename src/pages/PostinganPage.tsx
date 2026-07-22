@@ -5,20 +5,28 @@ import { Button } from '../components/common/Button';
 import { useAuth } from '../hooks/useAuth';
 import { triggerHaptic } from '../telegram/webapp';
 import { getSystemSettings } from '../firebase/services/settingService';
-import { SystemSettings } from '../types';
+import { createPost, getRecruiterPosts, archiveOldPosts } from '../firebase/services/postService';
+import { SystemSettings, BatchPost } from '../types';
 import { 
   Image as ImageIcon, 
   X, 
   Send, 
   AlertCircle, 
   CheckCircle2, 
-  Upload,
+  Upload, 
   Plus,
   Link as LinkIcon,
   Globe,
   Facebook,
   Twitter,
-  Hash
+  Hash,
+  History,
+  Archive,
+  ChevronRight,
+  ChevronLeft,
+  ExternalLink,
+  Calendar,
+  Clock
 } from 'lucide-react';
 
 type SocialPlatform = 'Facebook' | 'X' | 'Other';
@@ -38,13 +46,46 @@ export const PostinganPage: React.FC = () => {
   const [status, setStatus] = useState<{ type: 'idle' | 'success' | 'error'; message?: string }>({ type: 'idle' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // History State
+  const [posts, setPosts] = useState<BatchPost[]>([]);
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
   useEffect(() => {
-    const fetchSettings = async () => {
+    const init = async () => {
       const s = await getSystemSettings();
       setSettings(s);
+      await archiveOldPosts(); // Auto archive old posts on mount
+      fetchHistory();
     };
-    fetchSettings();
+    init();
   }, []);
+
+  const fetchHistory = async (reset: boolean = false) => {
+    if (!userProfile?.telegramId) return;
+    setIsLoadingHistory(true);
+    try {
+      const { posts: fetchedPosts, lastDoc: nextDoc } = await getRecruiterPosts(
+        userProfile.telegramId, 
+        10, 
+        reset ? undefined : lastDoc
+      );
+      
+      if (reset) {
+        setPosts(fetchedPosts);
+      } else {
+        setPosts(prev => [...prev, ...fetchedPosts]);
+      }
+      
+      setLastDoc(nextDoc);
+      setHasMore(fetchedPosts.length === 10);
+    } catch (err) {
+      console.error('[Postingan] Error fetching history:', err);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -78,21 +119,31 @@ export const PostinganPage: React.FC = () => {
 
   const updateLink = (index: number, url: string) => {
     const newLinks = [...links];
-    let platform: SocialPlatform = 'Other';
+    let platform = newLinks[index].platform;
+    
+    // Auto-detect if user pastes link
     if (url.includes('facebook.com') || url.includes('fb.com') || url.includes('fb.watch')) {
       platform = 'Facebook';
     } else if (url.includes('x.com') || url.includes('twitter.com')) {
       platform = 'X';
     }
+    
     newLinks[index] = { url, platform };
     setLinks(newLinks);
   };
 
+  const updatePlatform = (index: number, platform: SocialPlatform) => {
+    const newLinks = [...links];
+    newLinks[index] = { ...newLinks[index], platform };
+    setLinks(newLinks);
+    triggerHaptic('selection');
+  };
+
   const getPlatformIcon = (platform: SocialPlatform) => {
     switch (platform) {
-      case 'Facebook': return <Facebook className="w-4 h-4 text-blue-500" />;
-      case 'X': return <Twitter className="w-4 h-4 text-slate-200" />;
-      default: return <Globe className="w-4 h-4 text-emerald-400" />;
+      case 'Facebook': return <Facebook className="w-3.5 h-3.5 text-blue-400" />;
+      case 'X': return <Twitter className="w-3.5 h-3.5 text-slate-200" />;
+      default: return <Globe className="w-3.5 h-3.5 text-emerald-400" />;
     }
   };
 
@@ -103,11 +154,19 @@ export const PostinganPage: React.FC = () => {
       return;
     }
 
+    if (images.length === 0) {
+      setStatus({ type: 'error', message: 'Setidaknya upload 1 gambar.' });
+      return;
+    }
+
     setIsUploading(true);
     setStatus({ type: 'idle' });
     triggerHaptic('impact', 'medium');
 
     try {
+      const recruiterName = `${userProfile?.firstName} ${userProfile?.lastName || ''}`.trim();
+      const recruiterUsername = userProfile?.username || telegramUser?.username;
+      
       const response = await fetch('/api/telegram/send-post', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,8 +174,8 @@ export const PostinganPage: React.FC = () => {
           links: validLinks.map(l => l.url),
           startNumber,
           images,
-          recruiterName: `${userProfile?.firstName} ${userProfile?.lastName || ''}`.trim(),
-          recruiterUsername: userProfile?.username || telegramUser?.username,
+          recruiterName,
+          recruiterUsername,
           groupId: settings?.telegramGroupId,
           topicId: settings?.telegramTopicPosting
         })
@@ -124,11 +183,25 @@ export const PostinganPage: React.FC = () => {
 
       const result = await response.json();
       if (result.success) {
-        setStatus({ type: 'success', message: 'Postingan berhasil dikirim ke grup Telegram!' });
+        // Save to Firestore (no images)
+        await createPost({
+          telegramId: userProfile?.telegramId || '',
+          username: recruiterUsername || '',
+          name: recruiterName,
+          date: new Date().toISOString().split('T')[0],
+          startNumber,
+          links: validLinks.map(l => l.url),
+          platforms: validLinks.map(l => l.platform)
+        });
+
+        setStatus({ type: 'success', message: 'Postingan berhasil dikirim dan dicatat!' });
         setLinks(Array(10).fill({ url: '', platform: 'Facebook' }));
         setImages([]);
         setStartNumber(prev => prev + 10);
         triggerHaptic('notification', 'success');
+        
+        // Refresh history
+        fetchHistory(true);
       } else {
         throw new Error(result.error || 'Gagal mengirim postingan');
       }
@@ -158,10 +231,10 @@ export const PostinganPage: React.FC = () => {
         </div>
 
         {/* Form Section */}
-        <GlassCard className="p-4 space-y-5">
+        <GlassCard className="p-4 space-y-6">
           {/* Start Number Selection */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase px-1 flex items-center gap-2">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-2">
               <Hash className="w-3.5 h-3.5 text-amber-400" />
               Nomor Awal Postingan
             </label>
@@ -170,36 +243,52 @@ export const PostinganPage: React.FC = () => {
                 type="number"
                 value={startNumber}
                 onChange={(e) => setStartNumber(parseInt(e.target.value) || 1)}
-                className="w-24 p-2.5 rounded-xl bg-slate-950/50 border border-slate-800 text-white font-bold text-center outline-none focus:border-sky-500/50"
+                className="w-24 p-3 rounded-xl bg-slate-950 border border-slate-800 text-white font-black text-center outline-none focus:border-sky-500/50 shadow-inner"
               />
-              <span className="text-xs text-slate-500 font-medium">
-                Bot akan memuat nomor: {startNumber} sampai {startNumber + 9}
+              <span className="text-[10px] text-slate-500 font-bold leading-tight">
+                Bot akan memuat nomor:<br />
+                <span className="text-sky-400">{startNumber}</span> sampai <span className="text-sky-400">{startNumber + 9}</span>
               </span>
             </div>
           </div>
 
           {/* Links Section */}
           <div className="space-y-3">
-            <label className="text-xs font-bold text-slate-400 uppercase px-1 flex items-center gap-2">
+            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-2">
               <LinkIcon className="w-3.5 h-3.5 text-sky-400" />
-              Link Sosmed (Maks 10)
+              Link Sosmed & Platform (Maks 10)
             </label>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {links.map((link, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
-                    {getPlatformIcon(link.platform)}
-                  </div>
-                  <div className="relative flex-1">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600">
+                <div key={idx} className="space-y-2 p-3 rounded-2xl bg-slate-950/40 border border-slate-800/50 shadow-inner">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-600 bg-slate-900 px-2 py-0.5 rounded-md">
                       #{startNumber + idx}
                     </span>
+                    <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                      {(['Facebook', 'X', 'Other'] as SocialPlatform[]).map(p => (
+                        <button
+                          key={p}
+                          onClick={() => updatePlatform(idx, p)}
+                          className={`px-2 py-1 rounded-md text-[9px] font-black uppercase transition-all flex items-center gap-1 ${
+                            link.platform === p 
+                              ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' 
+                              : 'text-slate-600 hover:text-slate-400'
+                          }`}
+                        >
+                          {getPlatformIcon(p)}
+                          {p === 'Other' ? 'Lainnya' : p}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="relative">
                     <input
                       type="text"
                       value={link.url}
                       onChange={(e) => updateLink(idx, e.target.value)}
-                      placeholder="https://facebook.com/..."
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/50 border border-slate-800 focus:border-sky-500/50 text-slate-200 text-[11px] outline-none transition-all placeholder:text-slate-700"
+                      placeholder="Paste link postingan di sini..."
+                      className="w-full pl-3 pr-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-sky-500/50 text-white text-[11px] outline-none transition-all placeholder:text-slate-700 font-medium"
                     />
                   </div>
                 </div>
@@ -208,14 +297,14 @@ export const PostinganPage: React.FC = () => {
           </div>
 
           {/* Images Section */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
-              <label className="text-xs font-bold text-slate-400 uppercase">
-                Gambar ({images.length}/10)
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                Upload Gambar ({images.length}/10)
               </label>
               <button 
                 onClick={() => fileInputRef.current?.click()}
-                className="text-[10px] font-black text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors uppercase"
+                className="text-[10px] font-black text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors uppercase bg-sky-500/10 px-2 py-1 rounded-lg border border-sky-500/20"
               >
                 <Plus className="w-3 h-3" /> Tambah
               </button>
@@ -235,12 +324,12 @@ export const PostinganPage: React.FC = () => {
                 onClick={() => fileInputRef.current?.click()}
                 className="group cursor-pointer aspect-video rounded-2xl border-2 border-dashed border-slate-800 hover:border-sky-500/30 bg-slate-950/30 flex flex-col items-center justify-center gap-3 transition-all active:scale-[0.98]"
               >
-                <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 group-hover:text-sky-400 group-hover:border-sky-500/30 transition-colors">
+                <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 group-hover:text-sky-400 group-hover:border-sky-500/30 transition-colors shadow-lg">
                   <Upload className="w-6 h-6" />
                 </div>
                 <div className="text-center">
-                  <p className="text-xs font-bold text-slate-400 group-hover:text-slate-200">Klik untuk upload gambar</p>
-                  <p className="text-[10px] text-slate-600">Maksimal 10 gambar per batch</p>
+                  <p className="text-xs font-bold text-slate-300 group-hover:text-white">Klik untuk upload gambar</p>
+                  <p className="text-[10px] text-slate-600 font-medium mt-1">Maksimal 10 gambar per batch</p>
                 </div>
               </div>
             ) : (
@@ -253,7 +342,7 @@ export const PostinganPage: React.FC = () => {
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.8 }}
-                      className="relative aspect-square rounded-xl overflow-hidden border border-slate-800 bg-slate-900 group"
+                      className="relative aspect-square rounded-xl overflow-hidden border border-slate-800 bg-slate-900 group shadow-md"
                     >
                       <img src={img} alt="Preview" className="w-full h-full object-cover" />
                       <button
@@ -269,10 +358,10 @@ export const PostinganPage: React.FC = () => {
                 {images.length < 10 && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="aspect-square rounded-xl border-2 border-dashed border-slate-800 hover:border-sky-500/30 bg-slate-950/30 flex flex-col items-center justify-center gap-1.5 transition-all text-slate-500 hover:text-sky-400"
+                    className="aspect-square rounded-xl border-2 border-dashed border-slate-800 hover:border-sky-500/30 bg-slate-950/30 flex flex-col items-center justify-center gap-1.5 transition-all text-slate-500 hover:text-sky-400 group"
                   >
-                    <Plus className="w-6 h-6" />
-                    <span className="text-[10px] font-bold uppercase tracking-tighter">Tambah</span>
+                    <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-black uppercase tracking-tighter">Tambah</span>
                   </button>
                 )}
               </div>
@@ -285,7 +374,7 @@ export const PostinganPage: React.FC = () => {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className={`p-3 rounded-2xl flex items-center gap-3 ${
+                className={`p-4 rounded-2xl flex items-center gap-3 ${
                   status.type === 'success' 
                     ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' 
                     : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
@@ -296,7 +385,7 @@ export const PostinganPage: React.FC = () => {
                 ) : (
                   <AlertCircle className="w-5 h-5 shrink-0" />
                 )}
-                <p className="text-xs font-bold leading-tight">{status.message}</p>
+                <p className="text-xs font-black leading-tight">{status.message}</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -312,6 +401,104 @@ export const PostinganPage: React.FC = () => {
           </Button>
         </GlassCard>
 
+        {/* History Section */}
+        <div className="space-y-3">
+          <div className="px-1 flex items-center justify-between">
+            <h3 className="text-sm font-black text-white flex items-center gap-2">
+              <History className="w-4 h-4 text-amber-400" />
+              Riwayat Postingan
+            </h3>
+            <div className="px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-[9px] font-black text-amber-400 uppercase tracking-widest">
+              Recent Activity
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {posts.length === 0 && !isLoadingHistory ? (
+              <div className="p-8 text-center bg-slate-900/40 rounded-3xl border border-slate-800/50">
+                <Clock className="w-8 h-8 text-slate-700 mx-auto mb-2" />
+                <p className="text-xs font-bold text-slate-500">Belum ada riwayat postingan</p>
+              </div>
+            ) : (
+              posts.map((post) => (
+                <GlassCard key={post.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-white">#{post.startNumber} - #{post.startNumber + post.links.length - 1}</span>
+                        {post.archived && (
+                          <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase bg-slate-800 text-slate-500 border border-slate-700 flex items-center gap-1">
+                            <Archive className="w-2.5 h-2.5" /> Arsip
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold">
+                          <Calendar className="w-3 h-3 text-sky-400" />
+                          {post.date}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold">
+                          <LinkIcon className="w-3 h-3 text-sky-400" />
+                          {post.links.length} Link
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex -space-x-1.5">
+                      {Array.from(new Set(post.platforms)).map((p, i) => (
+                        <div key={i} className="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center shadow-md">
+                          {getPlatformIcon(p as SocialPlatform)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1.5 pt-2 border-t border-slate-800/50">
+                    {post.links.slice(0, 2).map((link, i) => (
+                      <a 
+                        key={i} 
+                        href={link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-2 rounded-xl bg-slate-950/50 hover:bg-slate-900 border border-slate-800/50 transition-colors group"
+                      >
+                        <span className="text-[10px] text-slate-400 font-medium truncate max-w-[200px]">
+                          {link}
+                        </span>
+                        <ExternalLink className="w-3 h-3 text-slate-600 group-hover:text-sky-400 transition-colors" />
+                      </a>
+                    ))}
+                    {post.links.length > 2 && (
+                      <div className="text-[9px] font-black text-slate-600 text-center uppercase tracking-tighter pt-1">
+                        + {post.links.length - 2} Link Lainnya
+                      </div>
+                    )}
+                  </div>
+                </GlassCard>
+              ))
+            )}
+
+            {hasMore && (
+              <button
+                onClick={() => fetchHistory()}
+                disabled={isLoadingHistory}
+                className="w-full p-4 rounded-2xl bg-slate-900/50 border border-slate-800 text-xs font-black text-slate-400 hover:text-white transition-all flex items-center justify-center gap-2"
+              >
+                {isLoadingHistory ? (
+                  <>
+                    <X className="w-4 h-4 animate-spin" />
+                    Memuat...
+                  </>
+                ) : (
+                  <>
+                    Lihat Lebih Banyak
+                    <ChevronRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Tips Section */}
         <div className="px-4 py-3 bg-sky-500/5 rounded-2xl border border-sky-500/10">
           <h4 className="text-[10px] font-black text-sky-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
@@ -324,11 +511,11 @@ export const PostinganPage: React.FC = () => {
             </li>
             <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
               <span className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 shrink-0" />
-              Format caption akan mencantumkan Tanggal, Range Nomor, dan List Link.
+              Data postingan (link & metadata) disimpan di Firebase, namun gambar hanya dikirim ke Telegram.
             </li>
             <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
               <span className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 shrink-0" />
-              Grup & Topic ID diatur secara otomatis dari menu Owner Settings.
+              Postingan dari hari sebelumnya akan otomatis masuk ke folder Arsip.
             </li>
           </ul>
         </div>

@@ -57,6 +57,24 @@
       },
       "required": ["id", "title", "content", "createdAt"]
     },
+    "Post": {
+      "title": "Recruitment Post",
+      "description": "Batch of links sent to Telegram, archived automatically after current day",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "telegramId": { "type": "string" },
+        "username": { "type": "string" },
+        "name": { "type": "string" },
+        "date": { "type": "string" },
+        "startNumber": { "type": "integer" },
+        "links": { "type": "array", "items": { "type": "string" } },
+        "platforms": { "type": "array", "items": { "type": "string" } },
+        "archived": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "telegramId", "date", "startNumber", "links", "archived", "createdAt"]
+    },
     "Setting": {
       "title": "System Setting",
       "description": "System-wide configuration settings managed by Owner",
@@ -87,6 +105,10 @@
     "/settings/{settingId}": {
       "schema": { "$ref": "#/entities/Setting" },
       "description": "System configuration parameters"
+    },
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/entities/Post" },
+      "description": "Batch posting history"
     }
   }
 }

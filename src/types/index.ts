@@ -117,6 +117,19 @@ export interface SystemSettings {
   updatedAt: string;
 }
 
+export interface BatchPost {
+  id: string;
+  telegramId: string;
+  username: string;
+  name: string;
+  date: string; // YYYY-MM-DD
+  startNumber: number;
+  links: string[];
+  platforms: string[];
+  archived: boolean;
+  createdAt: string;
+}
+
 export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
