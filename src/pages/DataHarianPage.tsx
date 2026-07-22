@@ -25,10 +25,69 @@ import {
   Zap,
   Check,
   XCircle,
-  HelpCircle
+  HelpCircle,
+  ExternalLink,
+  User,
+  Lock
 } from 'lucide-react';
 
-// Channel Platforms with Icons
+// Channel Platform Real SVG Icons
+const ChannelPlatformIcon: React.FC<{ id: string; className?: string }> = ({ id, className = "w-4 h-4 shrink-0" }) => {
+  switch (id) {
+    case 'Facebook':
+      return (
+        <svg className={`${className} text-blue-500 fill-current`} viewBox="0 0 24 24">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      );
+    case 'X (Twitter)':
+      return (
+        <svg className={`${className} text-slate-200 fill-current`} viewBox="0 0 24 24">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      );
+    case 'Threads':
+      return (
+        <svg className={`${className} text-white fill-current`} viewBox="0 0 24 24">
+          <path d="M12.186 24c-3.142 0-5.782-1.002-7.587-2.87-1.848-1.91-2.599-4.57-2.599-7.728 0-3.322.95-6.07 2.825-8.17C6.632 3.123 9.29 2 12.723 2c3.488 0 6.208 1.14 8.084 3.388 1.583 1.897 2.392 4.417 2.392 7.488 0 .61-.03 1.256-.09 1.933h-3.411c.045-.487.068-.962.068-1.428 0-2.22-.57-3.992-1.693-5.27-1.196-1.36-2.937-2.05-5.183-2.05-2.298 0-4.093.758-5.337 2.252-1.22 1.466-1.838 3.513-1.838 6.084 0 2.327.534 4.254 1.587 5.727 1.055 1.475 2.585 2.223 4.548 2.223 1.623 0 2.946-.43 3.931-1.28.932-.803 1.488-1.922 1.654-3.328h-5.26v-3.072h8.777c.074.526.111 1.077.111 1.652 0 2.457-.833 4.475-2.477 6.002C18.667 23.23 15.808 24 12.186 24z" />
+        </svg>
+      );
+    case 'Instagram':
+      return (
+        <svg className={`${className} text-pink-500 fill-current`} viewBox="0 0 24 24">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+        </svg>
+      );
+    case 'TikTok':
+      return (
+        <svg className={`${className} text-cyan-400 fill-current`} viewBox="0 0 24 24">
+          <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.82.57-1.31 1.54-1.33 2.54-.02 1.08.46 2.15 1.28 2.84 1.01.83 2.47.98 3.63.4 1.03-.51 1.69-1.57 1.78-2.72.08-2.71.04-5.43.05-8.15-.01-2.9-.01-5.8 0-8.7z" />
+        </svg>
+      );
+    case 'LinkedIn':
+      return (
+        <svg className={`${className} text-sky-500 fill-current`} viewBox="0 0 24 24">
+          <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.28 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.75M6.46 10.9v8.37H9.25V10.9H6.46M7.86 6.7a1.62 1.62 0 1 0 0 3.24 1.62 1.62 0 0 0 0-3.24z" />
+        </svg>
+      );
+    case 'Telegram':
+      return (
+        <svg className={`${className} text-sky-400 fill-current`} viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.36-1 .53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.25.38-.51 1.07-.78 4.18-1.82 6.97-3.02 8.37-3.61 3.99-1.66 4.82-1.95 5.36-1.96.12 0 .38.03.55.17.14.12.18.28.2.45-.01.07.01.23 0 .39z" />
+        </svg>
+      );
+    case 'WhatsApp':
+      return (
+        <svg className={`${className} text-emerald-400 fill-current`} viewBox="0 0 24 24">
+          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+        </svg>
+      );
+    default:
+      return <Globe className={`${className} text-emerald-400`} />;
+  }
+};
+
+// Channel Platforms with Colors & Active Styles
 const CHANNELS = [
   { id: 'Facebook', label: 'FB (Facebook)', color: 'bg-blue-600/20 border-blue-500/40 text-blue-400', activeBg: 'bg-blue-600 text-white' },
   { id: 'X (Twitter)', label: 'X (Twitter)', color: 'bg-slate-700/30 border-slate-600/40 text-slate-300', activeBg: 'bg-slate-200 text-slate-900' },
@@ -45,6 +104,7 @@ export const DataHarianPage: React.FC = () => {
   const { userProfile, telegramUser } = useAuth();
   const { reports, submitReport, isLoading } = useReports();
 
+  const isAdminOrOwner = userProfile?.role === 'Admin' || userProfile?.role === 'Owner';
   const telegramId = userProfile?.telegramId || String(telegramUser?.id || '');
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -59,15 +119,14 @@ export const DataHarianPage: React.FC = () => {
 
   // Latest user reports
   const userReports = reports.filter((r) => r.telegramId === telegramId);
-  const latestReport = userReports.length > 0 ? userReports[0] : null;
 
   // Check if submitted report today
   const hasReportToday = userReports.some((r) => r.date === todayStr);
 
   // Form State initialized with auto set values
   const [formData, setFormData] = useState<DailyReportFormData>({
-    date: todayStr, // Auto set date today
-    recruiterUsername: autoRecruiterUsername, // Auto set recruiter username
+    date: todayStr,
+    recruiterUsername: autoRecruiterUsername,
     channel: 'Facebook',
     applicantWhatsapp: '',
     uid9Kucing: '',
@@ -153,7 +212,11 @@ export const DataHarianPage: React.FC = () => {
       await submitReport({
         ...formData,
         date: todayStr, // Ensure auto set date
-        recruiterUsername: autoRecruiterUsername // Ensure auto set recruiter username
+        recruiterUsername: autoRecruiterUsername, // Ensure auto set recruiter username
+        // Recruiter result is strictly 'Pending', Admin/Owner can set custom result
+        result: isAdminOrOwner ? formData.result : 'Pending',
+        // Recruiter can only select T0 or V0, T3 is for Admin/Owner
+        grup: !isAdminOrOwner && formData.grup === 'T3' ? 'T0' : formData.grup
       });
 
       setSuccessMsg('Data Harian pelamar berhasil disimpan & tersinkron ke Google Sheets!');
@@ -164,6 +227,8 @@ export const DataHarianPage: React.FC = () => {
         applicantWhatsapp: '',
         uid9Kucing: '',
         applicantTelegramUsername: '',
+        result: 'Pending',
+        grup: 'T0',
         note: ''
       }));
     } catch (err) {
@@ -311,7 +376,7 @@ export const DataHarianPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 3. Channels (Options with Platform Icons) */}
+          {/* 3. Channels (Options with Real Platform SVG Icons) */}
           <div className="space-y-2">
             <label className="text-xs font-bold tracking-wider text-slate-400 uppercase px-1 flex items-center gap-2">
               <Share2 className="w-3.5 h-3.5 text-indigo-400" />
@@ -331,7 +396,7 @@ export const DataHarianPage: React.FC = () => {
                         : `${ch.color} hover:bg-white/5`
                     }`}
                   >
-                    <Globe className="w-3.5 h-3.5 shrink-0" />
+                    <ChannelPlatformIcon id={ch.id} />
                     <span className="truncate">{ch.label}</span>
                   </button>
                 );
@@ -362,72 +427,158 @@ export const DataHarianPage: React.FC = () => {
               required
             />
 
-            <Input
-              label="Username Telegram Pelamar"
-              type="text"
-              placeholder="Contoh: @username_pelamar"
-              icon={<Send className="w-4 h-4 text-sky-400" />}
-              value={formData.applicantTelegramUsername}
-              onChange={(e) => setFormData({ ...formData, applicantTelegramUsername: e.target.value })}
-            />
-          </div>
-
-          {/* 6. Results (Pending, ACC, REJECT) */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold tracking-wider text-slate-400 uppercase px-1 flex items-center gap-2">
-              <UserCheck className="w-3.5 h-3.5 text-blue-400" />
-              <span>Result (Hasil Seleksi)</span>
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, result: 'Pending' })}
-                className={`py-3 px-3 rounded-2xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
-                  formData.result === 'Pending'
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20 scale-[1.02]'
-                    : 'bg-amber-500/10 text-amber-300 border-amber-500/20 hover:bg-amber-500/20'
-                }`}
-              >
-                <HelpCircle className="w-4 h-4" />
-                <span>Pending</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, result: 'ACC' })}
-                className={`py-3 px-3 rounded-2xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
-                  formData.result === 'ACC'
-                    ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/20 scale-[1.02]'
-                    : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20'
-                }`}
-              >
-                <Check className="w-4 h-4" />
-                <span>ACC</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, result: 'REJECT' })}
-                className={`py-3 px-3 rounded-2xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
-                  formData.result === 'REJECT'
-                    ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-600/20 scale-[1.02]'
-                    : 'bg-rose-500/10 text-rose-300 border-rose-500/20 hover:bg-rose-500/20'
-                }`}
-              >
-                <XCircle className="w-4 h-4" />
-                <span>REJECT</span>
-              </button>
+            <div className="space-y-1.5">
+              <Input
+                label="Username Telegram Pelamar"
+                type="text"
+                placeholder="Contoh: @username_pelamar"
+                icon={<Send className="w-4 h-4 text-sky-400" />}
+                value={formData.applicantTelegramUsername}
+                onChange={(e) => {
+                  let val = e.target.value.trim();
+                  if (val && !val.startsWith('@')) {
+                    val = `@${val}`;
+                  }
+                  setFormData({ ...formData, applicantTelegramUsername: val });
+                }}
+              />
             </div>
           </div>
 
-          {/* 7. Grup (T0, V0, T3) */}
+          {/* Live Real Telegram Account Preview */}
+          {(() => {
+            const rawTg = formData.applicantTelegramUsername || '';
+            const cleanTg = rawTg.trim().replace(/^@/, '');
+            if (!cleanTg || cleanTg.length < 2) return null;
+
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3.5 rounded-2xl bg-gradient-to-r from-sky-950/80 via-blue-950/60 to-slate-900 border border-sky-500/30 flex items-center justify-between gap-3 shadow-lg"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-md border border-sky-400/40 shrink-0">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-white font-mono">@{cleanTg}</span>
+                      <span className="text-[9px] bg-sky-500/20 text-sky-300 px-2 py-0.2 rounded-full border border-sky-500/30 font-bold">
+                        Akun Real Telegram
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      Link resmi t.me/{cleanTg} untuk memverifikasi profil pelamar
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={`https://t.me/${cleanTg}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-md shrink-0 hover:scale-[1.03]"
+                >
+                  <span>Buka Telegram</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              </motion.div>
+            );
+          })()}
+
+          {/* 6. Results (Recruiter = Auto Pending, Admin/Owner = Pending, ACC, REJECT) */}
           <div className="space-y-2">
-            <label className="text-xs font-bold tracking-wider text-slate-400 uppercase px-1 flex items-center gap-2">
-              <Users className="w-3.5 h-3.5 text-purple-400" />
-              <span>Grup</span>
+            <label className="text-xs font-bold tracking-wider text-slate-400 uppercase px-1 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <UserCheck className="w-3.5 h-3.5 text-blue-400" />
+                <span>Result (Hasil Seleksi)</span>
+              </span>
+              {!isAdminOrOwner ? (
+                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Auto Pending
+                </span>
+              ) : (
+                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  Admin / Owner Control
+                </span>
+              )}
+            </label>
+
+            {!isAdminOrOwner ? (
+              <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-amber-500/30 text-xs flex items-center justify-between gap-3 shadow-inner">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                    <HelpCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-white">Status: Pending</p>
+                    <p className="text-[10px] text-slate-400 leading-tight">
+                      Input recruiter otomatis berstatus Pending. Persetujuan (ACC / REJECT) dilakukan oleh Admin atau Owner.
+                    </p>
+                  </div>
+                </div>
+                <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                  Pending
+                </span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, result: 'Pending' })}
+                  className={`py-3 px-3 rounded-2xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
+                    formData.result === 'Pending'
+                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20 scale-[1.02]'
+                      : 'bg-amber-500/10 text-amber-300 border-amber-500/20 hover:bg-amber-500/20'
+                  }`}
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  <span>Pending</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, result: 'ACC' })}
+                  className={`py-3 px-3 rounded-2xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
+                    formData.result === 'ACC'
+                      ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/20 scale-[1.02]'
+                      : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20'
+                  }`}
+                >
+                  <Check className="w-4 h-4" />
+                  <span>ACC</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, result: 'REJECT' })}
+                  className={`py-3 px-3 rounded-2xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
+                    formData.result === 'REJECT'
+                      ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-600/20 scale-[1.02]'
+                      : 'bg-rose-500/10 text-rose-300 border-rose-500/20 hover:bg-rose-500/20'
+                  }`}
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>REJECT</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 7. Grup (Recruiter = T0 & V0, Admin/Owner = T0, V0, T3) */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold tracking-wider text-slate-400 uppercase px-1 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Users className="w-3.5 h-3.5 text-purple-400" />
+                <span>Grup</span>
+              </span>
+              {!isAdminOrOwner && (
+                <span className="text-[10px] text-slate-400 font-medium">T0 & V0 (T3 khusus Admin/Owner)</span>
+              )}
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {(['T0', 'V0', 'T3'] as const).map((g) => (
+              {(['T0', 'V0'] as const).map((g) => (
                 <button
                   key={g}
                   type="button"
@@ -441,6 +592,28 @@ export const DataHarianPage: React.FC = () => {
                   <span>Grup {g}</span>
                 </button>
               ))}
+
+              {isAdminOrOwner ? (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, grup: 'T3' })}
+                  className={`py-2.5 px-3 rounded-2xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
+                    formData.grup === 'T3'
+                      ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white border-sky-400 shadow-lg scale-[1.02]'
+                      : 'bg-slate-900/80 text-slate-300 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  <span>Grup T3</span>
+                </button>
+              ) : (
+                <div
+                  title="Khusus Admin & Owner"
+                  className="py-2.5 px-3 rounded-2xl text-xs font-bold border border-slate-800/80 bg-slate-950/50 text-slate-500 opacity-60 flex items-center justify-center gap-1.5 cursor-not-allowed"
+                >
+                  <Lock className="w-3 h-3 text-slate-500" />
+                  <span>T3 (Admin)</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -526,3 +699,4 @@ export const DataHarianPage: React.FC = () => {
     </motion.div>
   );
 };
+
