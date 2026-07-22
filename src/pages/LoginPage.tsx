@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GlassCard } from '../components/common/GlassCard';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
@@ -19,7 +19,33 @@ export const LoginPage: React.FC = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingExisting, setIsCheckingExisting] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    const checkExistingUser = async () => {
+      if (!telegramUser) {
+        if (isMounted) setIsCheckingExisting(false);
+        return;
+      }
+      const telegramId = String(telegramUser.id);
+      try {
+        const existing = await getUserProfile(telegramId);
+        if (existing && isMounted) {
+          await refreshProfile();
+          return;
+        }
+      } catch (err) {
+        console.warn('Error checking existing user in LoginPage:', err);
+      } finally {
+        if (isMounted) setIsCheckingExisting(false);
+      }
+    };
+
+    checkExistingUser();
+    return () => { isMounted = false; };
+  }, [telegramUser, refreshProfile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +119,21 @@ export const LoginPage: React.FC = () => {
       setIsLoading(false);
     }
   };
+
+  if (isCheckingExisting) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+        <GlassCard className="max-w-md w-full p-8 text-center space-y-4 border-blue-500/20">
+          <AzurLizeLogo size="lg" />
+          <div className="flex flex-col items-center gap-3 pt-4">
+            <div className="w-8 h-8 border-3 border-sky-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm font-bold text-white">Memeriksa Status Akun...</p>
+            <p className="text-xs text-slate-400">Sedang memverifikasi data pendaftaran Telegram Anda.</p>
+          </div>
+        </GlassCard>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 pb-12 pt-safe overflow-x-hidden">

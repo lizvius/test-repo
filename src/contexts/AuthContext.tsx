@@ -143,7 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.setItem(`azurlize_token_${freshTgUser.id}`, freshToken);
           localStorage.setItem('azurlize_session_token', freshToken);
 
-          const freshProfile = await withTimeout(getUserProfile(telegramId), 800, cachedProfile);
+          const freshProfile = await withTimeout(getUserProfile(telegramId), 3500, cachedProfile);
           if (freshProfile) {
             localStorage.setItem(`azurlize_profile_${freshTgUser.id}`, JSON.stringify(freshProfile));
           }
@@ -179,7 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         let profile = null;
         try {
-          profile = await withTimeout(getUserProfile(telegramId), 800, null);
+          profile = await withTimeout(getUserProfile(telegramId), 3500, null);
         } catch (dbErr) {
           console.warn('[AuthContext] Firestore profile fetch failed:', dbErr);
         }
@@ -218,7 +218,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         let profile = null;
         try {
-          profile = await withTimeout(getUserProfile(telegramId), 800, null);
+          profile = await withTimeout(getUserProfile(telegramId), 3500, null);
         } catch (dbErr) {
           console.warn('[AuthContext] Fallback Firestore profile fetch failed:', dbErr);
         }
