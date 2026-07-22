@@ -25,5 +25,9 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read, write: if true;
     }
+
+    match /posts/{postId} {
+      allow read, write: if true;
+    }
   }
 }

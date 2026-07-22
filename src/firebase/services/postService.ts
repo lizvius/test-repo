@@ -16,6 +16,7 @@ import {
 import { db } from '../config';
 import { BatchPost } from '../../types';
 import { getWIBDate } from '../../utils/format';
+import { handleFirestoreError, OperationType } from '../error';
 
 const POSTS_COLLECTION = 'posts';
 
@@ -29,8 +30,12 @@ export const createPost = async (postData: Omit<BatchPost, 'id' | 'createdAt' | 
     createdAt
   };
 
-  const docRef = await addDoc(collection(db, POSTS_COLLECTION), post);
-  return docRef.id;
+  try {
+    const docRef = await addDoc(collection(db, POSTS_COLLECTION), post);
+    return docRef.id;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, POSTS_COLLECTION);
+  }
 };
 
 export const getRecruiterPosts = async (
@@ -38,39 +43,47 @@ export const getRecruiterPosts = async (
   pageSize: number = 10, 
   lastDoc?: any
 ) => {
-  let q = query(
-    collection(db, POSTS_COLLECTION),
-    where('telegramId', '==', telegramId),
-    orderBy('createdAt', 'desc'),
-    limit(pageSize)
-  );
+  try {
+    let q = query(
+      collection(db, POSTS_COLLECTION),
+      where('telegramId', '==', telegramId),
+      orderBy('createdAt', 'desc'),
+      limit(pageSize)
+    );
 
-  if (lastDoc) {
-    q = query(q, startAfter(lastDoc));
+    if (lastDoc) {
+      q = query(q, startAfter(lastDoc));
+    }
+
+    const snapshot = await getDocs(q);
+    const posts = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as BatchPost[];
+
+    return {
+      posts,
+      lastDoc: snapshot.docs[snapshot.docs.length - 1]
+    };
+  } catch (error) {
+    handleFirestoreError(error, OperationType.LIST, POSTS_COLLECTION);
   }
-
-  const snapshot = await getDocs(q);
-  const posts = snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  })) as BatchPost[];
-
-  return {
-    posts,
-    lastDoc: snapshot.docs[snapshot.docs.length - 1]
-  };
 };
 
 export const archiveOldPosts = async () => {
   const today = getWIBDate();
   
-  const q = query(
-    collection(db, POSTS_COLLECTION),
-    where('date', '<', today),
-    where('archived', '==', false)
-  );
+  try {
+    const q = query(
+      collection(db, POSTS_COLLECTION),
+      where('date', '<', today),
+      where('archived', '==', false)
+    );
 
-  const snapshot = await getDocs(q);
-  const promises = snapshot.docs.map(d => updateDoc(doc(db, POSTS_COLLECTION, d.id), { archived: true }));
-  await Promise.all(promises);
+    const snapshot = await getDocs(q);
+    const promises = snapshot.docs.map(d => updateDoc(doc(db, POSTS_COLLECTION, d.id), { archived: true }));
+    await Promise.all(promises);
+  } catch (error) {
+    handleFirestoreError(error, OperationType.UPDATE, POSTS_COLLECTION);
+  }
 };
