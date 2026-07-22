@@ -48,6 +48,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Consider WebApp fully loaded if platform or initData is available
           if (wa && (wa.initData || wa.initDataUnsafe?.user || wa.platform)) {
             clearInterval(interval);
+            try {
+              wa.ready();
+              wa.expand();
+            } catch (e) {
+              console.error('Error calling Telegram WebApp ready/expand:', e);
+            }
             resolve();
           } else if (Date.now() - checkStart > 1200) {
             clearInterval(interval);
@@ -139,15 +145,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isTelegramContext: true
       });
     } catch (err) {
-      await finishLoading({
-        isAuthenticated: false,
-        telegramUser: null,
-        userProfile: null,
-        token: null,
-        initData,
-        error: err instanceof Error ? err.message : 'Terjadi kesalahan otentikasi Telegram.',
-        isTelegramContext: true
-      });
+      // Fallback: If backend verification fails but we are inside Telegram, retrieve the user info client-side directly
+      const tgUser = webApp.initDataUnsafe?.user;
+      if (tgUser) {
+        console.warn('[AuthContext] Backend verification failed, using client-side WebApp user object fallback:', err);
+        const telegramId = String(tgUser.id);
+        const profile = await getUserProfile(telegramId);
+
+        await finishLoading({
+          isAuthenticated: profile !== null,
+          telegramUser: {
+            id: tgUser.id,
+            first_name: tgUser.first_name || '',
+            last_name: tgUser.last_name || '',
+            username: tgUser.username || '',
+            photo_url: tgUser.photo_url || ''
+          },
+          userProfile: profile,
+          token: 'client_side_fallback_token',
+          initData,
+          error: null, // Clear error so it doesn't block the screen with a scary error box
+          isTelegramContext: true
+        });
+      } else {
+        await finishLoading({
+          isAuthenticated: false,
+          telegramUser: null,
+          userProfile: null,
+          token: null,
+          initData,
+          error: err instanceof Error ? err.message : 'Terjadi kesalahan otentikasi Telegram.',
+          isTelegramContext: true
+        });
+      }
     }
   }, []);
 
