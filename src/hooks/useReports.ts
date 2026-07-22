@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DailyReport, DailyReportFormData } from '../types';
-import { createDailyReport, getReportsByTelegramId, getAllReports } from '../firebase/services/reportService';
+import { createDailyReport, getReportsByTelegramId, getAllReports, updateReportStatus } from '../firebase/services/reportService';
 import { syncReportToSheetsApi } from '../services/api';
 import { useAuth } from './useAuth';
 
@@ -67,11 +67,29 @@ export function useReports() {
     }
   };
 
+  const updateStatus = async (reportId: string, status: 'Pending' | 'ACC' | 'REJECT') => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await updateReportStatus(reportId, status);
+      setReports((prev) => 
+        prev.map(r => r.reportId === reportId ? { ...r, result: status } : r)
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Gagal mengubah status.';
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     reports,
     isLoading,
     error,
     refetch: fetchReports,
-    submitReport
+    submitReport,
+    updateStatus
   };
 }

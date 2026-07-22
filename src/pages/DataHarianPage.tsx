@@ -5,7 +5,7 @@ import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
 import { useReports } from '../hooks/useReports';
 import { useAuth } from '../hooks/useAuth';
-import { DailyReportFormData, SystemSettings } from '../types';
+import { DailyReportFormData, DailyReport, SystemSettings } from '../types';
 import { getSystemSettings } from '../firebase/services/settingService';
 import { sendReportToTelegramApi } from '../services/api';
 import { 
@@ -274,9 +274,85 @@ const CHANNELS = [
   { id: 'Lainnya', label: 'Lainnya', color: 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400', activeBg: 'bg-emerald-600 text-white' },
 ];
 
+const ReportListCard: React.FC<{ rep: DailyReport, isAdminOrOwner: boolean, onUpdateStatus: (id: string, status: 'Pending' | 'ACC' | 'REJECT') => void }> = ({ rep, isAdminOrOwner, onUpdateStatus }) => {
+  const { clean, formatted, url } = rep.applicantTelegramUsername ? parseTelegramUsername(rep.applicantTelegramUsername) : { clean: null, formatted: null, url: null };
+
+  return (
+    <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1">
+      <div className="flex items-center justify-between">
+        <span className="font-bold text-white flex items-center gap-1.5">
+          <Phone className="w-3 h-3 text-emerald-400" />
+          {rep.applicantWhatsapp || 'Tanpa No WA'}
+        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+            rep.result === 'ACC'
+              ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+              : rep.result === 'REJECT'
+              ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+              : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+          }`}>
+            {rep.result || 'Pending'}
+          </span>
+          {isAdminOrOwner && rep.result !== 'ACC' && (
+             <button
+                onClick={() => onUpdateStatus(rep.reportId || '', 'ACC')}
+                className="px-2 py-0.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold"
+             >
+               ACC
+             </button>
+          )}
+          {isAdminOrOwner && rep.result !== 'REJECT' && (
+             <button
+                onClick={() => onUpdateStatus(rep.reportId || '', 'REJECT')}
+                className="px-2 py-0.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/30 text-[10px] font-bold"
+             >
+               Reject
+             </button>
+          )}
+          {isAdminOrOwner && rep.result !== 'Pending' && (
+             <button
+                onClick={() => onUpdateStatus(rep.reportId || '', 'Pending')}
+                className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/30 text-[10px] font-bold"
+             >
+               Pending
+             </button>
+          )}
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
+        <span>Tanggal: <strong className="text-slate-200">{rep.date || '-'}</strong></span>
+        <span>UID: <strong className="text-slate-200">{rep.uid9Kucing || '-'}</strong></span>
+        <span>Channel: <strong className="text-slate-200">{rep.channel || '-'}</strong></span>
+        <span>Grup: <strong className="text-slate-200">{rep.grup || '-'}</strong></span>
+        {isAdminOrOwner && <span>Recruiter: <strong className="text-slate-200">@{rep.recruiterUsername || '-'}</strong></span>}
+      </div>
+
+      {clean && (
+        <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80 mt-1">
+          <div className="flex items-center gap-1.5 text-[10px] text-sky-300 font-mono font-bold">
+            <Send className="w-3 h-3 text-sky-400 shrink-0" />
+            <span>{formatted}</span>
+          </div>
+          <a
+            href={url as string}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-[10px] text-sky-300 font-bold flex items-center gap-1 transition-all"
+          >
+            <span>Chat Pelamar</span>
+            <ExternalLink className="w-2.5 h-2.5" />
+          </a>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const DataHarianPage: React.FC = () => {
   const { userProfile, telegramUser } = useAuth();
-  const { reports, submitReport, isLoading } = useReports();
+  const { reports, submitReport, updateStatus, isLoading } = useReports();
   const [activeTab, setActiveTab] = useState<'formulir' | 'minggu_ini' | 'pemeriksaan' | 'arsip'>('formulir');
 
   const isAdminOrOwner = userProfile?.role === 'Admin' || userProfile?.role === 'Owner';
@@ -299,8 +375,11 @@ export const DataHarianPage: React.FC = () => {
     ? userProfile.firstName
     : 'Recruiter';
 
-  // Latest user reports (memoized for performance)
-  const userReports = useMemo(() => reports.filter((r) => r.telegramId === telegramId), [reports, telegramId]);
+  // Admin/Owner sees all reports, regular users see only theirs
+  const userReports = useMemo(() => {
+    if (isAdminOrOwner) return reports;
+    return reports.filter((r) => r.telegramId === telegramId);
+  }, [reports, telegramId, isAdminOrOwner]);
 
   // Calculate current week's Monday
   const currentMondayStr = useMemo(() => {
@@ -333,7 +412,9 @@ export const DataHarianPage: React.FC = () => {
   }, [userReports, lastMondayStr]);
 
   // Check if submitted report today
-  const hasReportToday = useMemo(() => userReports.some((r) => r.date === todayStr), [userReports, todayStr]);
+  const hasReportToday = useMemo(() => {
+    return reports.some((r) => r.telegramId === telegramId && r.date === todayStr);
+  }, [reports, telegramId, todayStr]);
 
   // Form State initialized with auto set values
   const [formData, setFormData] = useState<DailyReportFormData>({
@@ -1154,51 +1235,7 @@ export const DataHarianPage: React.FC = () => {
 
           <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
             {userReports.slice(0, 5).map((rep, idx) => (
-              <div key={rep.reportId || idx} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-white flex items-center gap-1.5">
-                    <Phone className="w-3 h-3 text-emerald-400" />
-                    {rep.applicantWhatsapp || 'Tanpa No WA'}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
-                    rep.result === 'ACC'
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                      : rep.result === 'REJECT'
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                  }`}>
-                    {rep.result || 'Pending'}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
-                  <span>Channel: <strong className="text-slate-200">{rep.channel || '-'}</strong></span>
-                  <span>UID: <strong className="text-slate-200">{rep.uid9Kucing || '-'}</strong></span>
-                  <span>Grup: <strong className="text-slate-200">{rep.grup || '-'}</strong></span>
-                </div>
-
-                {rep.applicantTelegramUsername && (() => {
-                  const { clean, formatted, url } = parseTelegramUsername(rep.applicantTelegramUsername);
-                  if (!clean) return null;
-                  return (
-                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80 mt-1">
-                      <div className="flex items-center gap-1.5 text-[10px] text-sky-300 font-mono font-bold">
-                        <Send className="w-3 h-3 text-sky-400 shrink-0" />
-                        <span>{formatted}</span>
-                      </div>
-                      <a
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-2 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-[10px] text-sky-300 font-bold flex items-center gap-1 transition-all"
-                      >
-                        <span>Chat Pelamar</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
-                    </div>
-                  );
-                })()}
-              </div>
+              <ReportListCard key={rep.reportId || idx} rep={rep} isAdminOrOwner={isAdminOrOwner} onUpdateStatus={updateStatus} />
             ))}
           </div>
         </GlassCard>
@@ -1227,52 +1264,7 @@ export const DataHarianPage: React.FC = () => {
           ) : (
             <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
               {reportsMingguIni.map((rep, idx) => (
-                <div key={rep.reportId || idx} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <Phone className="w-3 h-3 text-emerald-400" />
-                      {rep.applicantWhatsapp || 'Tanpa No WA'}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
-                      rep.result === 'ACC'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        : rep.result === 'REJECT'
-                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                    }`}>
-                      {rep.result || 'Pending'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
-                    <span>Tanggal: <strong className="text-slate-200">{rep.date || '-'}</strong></span>
-                    <span>UID: <strong className="text-slate-200">{rep.uid9Kucing || '-'}</strong></span>
-                    <span>Channel: <strong className="text-slate-200">{rep.channel || '-'}</strong></span>
-                    <span>Grup: <strong className="text-slate-200">{rep.grup || '-'}</strong></span>
-                  </div>
-
-                  {rep.applicantTelegramUsername && (() => {
-                    const { clean, formatted, url } = parseTelegramUsername(rep.applicantTelegramUsername);
-                    if (!clean) return null;
-                    return (
-                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80 mt-1">
-                        <div className="flex items-center gap-1.5 text-[10px] text-sky-300 font-mono font-bold">
-                          <Send className="w-3 h-3 text-sky-400 shrink-0" />
-                          <span>{formatted}</span>
-                        </div>
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-2 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-[10px] text-sky-300 font-bold flex items-center gap-1 transition-all"
-                        >
-                          <span>Chat Pelamar</span>
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                      </div>
-                    );
-                  })()}
-                </div>
+                <ReportListCard key={rep.reportId || idx} rep={rep} isAdminOrOwner={isAdminOrOwner} onUpdateStatus={updateStatus} />
               ))}
             </div>
           )}
@@ -1300,52 +1292,7 @@ export const DataHarianPage: React.FC = () => {
           ) : (
             <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
               {reportsPemeriksaan.map((rep, idx) => (
-                <div key={rep.reportId || idx} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <Phone className="w-3 h-3 text-emerald-400" />
-                      {rep.applicantWhatsapp || 'Tanpa No WA'}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
-                      rep.result === 'ACC'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        : rep.result === 'REJECT'
-                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                    }`}>
-                      {rep.result || 'Pending'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
-                    <span>Tanggal: <strong className="text-slate-200">{rep.date || '-'}</strong></span>
-                    <span>UID: <strong className="text-slate-200">{rep.uid9Kucing || '-'}</strong></span>
-                    <span>Channel: <strong className="text-slate-200">{rep.channel || '-'}</strong></span>
-                    <span>Grup: <strong className="text-slate-200">{rep.grup || '-'}</strong></span>
-                  </div>
-
-                  {rep.applicantTelegramUsername && (() => {
-                    const { clean, formatted, url } = parseTelegramUsername(rep.applicantTelegramUsername);
-                    if (!clean) return null;
-                    return (
-                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80 mt-1">
-                        <div className="flex items-center gap-1.5 text-[10px] text-sky-300 font-mono font-bold">
-                          <Send className="w-3 h-3 text-sky-400 shrink-0" />
-                          <span>{formatted}</span>
-                        </div>
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-2 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-[10px] text-sky-300 font-bold flex items-center gap-1 transition-all"
-                        >
-                          <span>Chat Pelamar</span>
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                      </div>
-                    );
-                  })()}
-                </div>
+                <ReportListCard key={rep.reportId || idx} rep={rep} isAdminOrOwner={isAdminOrOwner} onUpdateStatus={updateStatus} />
               ))}
             </div>
           )}
@@ -1373,52 +1320,7 @@ export const DataHarianPage: React.FC = () => {
           ) : (
             <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
               {reportsArsip.map((rep, idx) => (
-                <div key={rep.reportId || idx} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-white flex items-center gap-1.5">
-                      <Phone className="w-3 h-3 text-emerald-400" />
-                      {rep.applicantWhatsapp || 'Tanpa No WA'}
-                    </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
-                      rep.result === 'ACC'
-                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        : rep.result === 'REJECT'
-                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                    }`}>
-                      {rep.result || 'Pending'}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
-                    <span>Tanggal: <strong className="text-slate-200">{rep.date || '-'}</strong></span>
-                    <span>UID: <strong className="text-slate-200">{rep.uid9Kucing || '-'}</strong></span>
-                    <span>Channel: <strong className="text-slate-200">{rep.channel || '-'}</strong></span>
-                    <span>Grup: <strong className="text-slate-200">{rep.grup || '-'}</strong></span>
-                  </div>
-
-                  {rep.applicantTelegramUsername && (() => {
-                    const { clean, formatted, url } = parseTelegramUsername(rep.applicantTelegramUsername);
-                    if (!clean) return null;
-                    return (
-                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80 mt-1">
-                        <div className="flex items-center gap-1.5 text-[10px] text-sky-300 font-mono font-bold">
-                          <Send className="w-3 h-3 text-sky-400 shrink-0" />
-                          <span>{formatted}</span>
-                        </div>
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-2 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-[10px] text-sky-300 font-bold flex items-center gap-1 transition-all"
-                        >
-                          <span>Chat Pelamar</span>
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                      </div>
-                    );
-                  })()}
-                </div>
+                <ReportListCard key={rep.reportId || idx} rep={rep} isAdminOrOwner={isAdminOrOwner} onUpdateStatus={updateStatus} />
               ))}
             </div>
           )}

@@ -66,6 +66,15 @@ export async function getReportsByTelegramId(telegramId: string): Promise<DailyR
   }
 }
 
+export async function updateReportStatus(reportId: string, result: 'Pending' | 'ACC' | 'REJECT'): Promise<void> {
+  try {
+    const reportRef = doc(db, COLLECTION_NAME, reportId);
+    await setDoc(reportRef, { result, updatedAt: new Date().toISOString() }, { merge: true });
+  } catch (error) {
+    handleFirestoreError(error, OperationType.WRITE, `${COLLECTION_NAME}/${reportId}`);
+  }
+}
+
 export async function getAllReports(): Promise<DailyReport[]> {
   try {
     const reportsRef = collection(db, COLLECTION_NAME);
