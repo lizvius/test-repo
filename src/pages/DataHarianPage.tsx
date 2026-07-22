@@ -69,39 +69,30 @@ export const DataHarianPage: React.FC = () => {
     }
   }, [latestReport, todayStr]);
 
-  // Live 24-Hour Timer Loop
+  // Check if user has submitted a report for today
+  const hasReportToday = userReports.some((r) => r.date === todayStr);
+
+  // Live Timer Loop: Counts down to the end of the current day (23:59:59 / 00:00)
   useEffect(() => {
     const updateTimer = () => {
-      if (!latestReport || !latestReport.createdAt) {
-        setTimeRemainingMs(0);
-        setIsCycleExpired(true);
-        setElapsedPercent(100);
-        return;
-      }
+      const now = new Date();
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      const diff = endOfDay.getTime() - now.getTime();
 
-      const reportTime = new Date(latestReport.createdAt).getTime();
-      const now = Date.now();
-      const twentyFourHoursMs = 24 * 60 * 60 * 1000;
-      const targetTime = reportTime + twentyFourHoursMs;
-      const diff = targetTime - now;
+      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const totalDayMs = 24 * 60 * 60 * 1000;
+      const elapsedMs = now.getTime() - startOfDay.getTime();
+      const pct = Math.min(100, Math.max(0, (elapsedMs / totalDayMs) * 100));
 
-      if (diff <= 0) {
-        setTimeRemainingMs(0);
-        setIsCycleExpired(true);
-        setElapsedPercent(100);
-      } else {
-        setTimeRemainingMs(diff);
-        setIsCycleExpired(false);
-        const elapsed = twentyFourHoursMs - diff;
-        const pct = Math.min(100, Math.max(0, (elapsed / twentyFourHoursMs) * 100));
-        setElapsedPercent(pct);
-      }
+      setTimeRemainingMs(Math.max(0, diff));
+      setElapsedPercent(pct);
+      setIsCycleExpired(!hasReportToday);
     };
 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [latestReport]);
+  }, [hasReportToday]);
 
   // Format time remaining into Hours, Minutes, Seconds
   const formatTime = (ms: number) => {
@@ -169,27 +160,27 @@ export const DataHarianPage: React.FC = () => {
               <Timer className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <h3 className="text-sm font-extrabold text-white">Timer Siklus 24 Jam</h3>
+              <h3 className="text-sm font-extrabold text-white">Timer Harian Real-time</h3>
               <p className="text-[10px] text-slate-400 font-medium">
-                {isCycleExpired ? 'Timer expired — Siap input data baru' : 'Data aktif dalam siklus berjalan'}
+                {!hasReportToday ? 'Belum isi data hari ini — Silakan input' : 'Data hari ini sudah tercatat & tersimpan'}
               </p>
             </div>
           </div>
 
           <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border flex items-center gap-1 ${
-            isCycleExpired
+            !hasReportToday
               ? 'bg-amber-500/20 text-amber-300 border-amber-500/30 animate-pulse'
               : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
           }`}>
             <Zap className="w-3 h-3" />
-            {isCycleExpired ? '24 Jam Lewat' : 'Data Aktif'}
+            {!hasReportToday ? 'Wajib Isi' : 'Selesai Today'}
           </span>
         </div>
 
         {/* Digital Countdown Display */}
         <div className="py-3 px-4 rounded-2xl bg-slate-950/90 border border-sky-500/20 flex flex-col items-center justify-center space-y-2 my-2 shadow-inner">
           <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">
-            {isCycleExpired ? 'Masa Berlaku 24 Jam Telah Selesai' : 'Sisa Waktu Siklus Data Harian'}
+            Sisa Waktu Menuju Pergantian Hari (23:59:59)
           </span>
 
           <div className="flex items-center gap-2 text-white font-mono font-black text-2xl sm:text-3xl tracking-wider">
@@ -219,7 +210,7 @@ export const DataHarianPage: React.FC = () => {
           <div className="w-full bg-slate-900 rounded-full h-2 mt-2 overflow-hidden p-0.5 border border-slate-800">
             <div 
               className={`h-full rounded-full transition-all duration-1000 ${
-                isCycleExpired 
+                !hasReportToday 
                   ? 'bg-amber-500' 
                   : 'bg-gradient-to-r from-sky-500 via-blue-500 to-emerald-400'
               }`}
@@ -232,9 +223,7 @@ export const DataHarianPage: React.FC = () => {
         <div className="mt-3 text-xs text-slate-300 flex items-start gap-2 bg-white/5 p-3 rounded-xl border border-white/10">
           <Clock className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
           <p className="text-[11px] leading-relaxed">
-            {isCycleExpired 
-              ? 'Waktu 24 jam telah lewat. Silakan masukkan data harian baru di bawah ini agar performa tim terus diperbarui.'
-              : 'Data harian Anda saat ini aktif. Setelah timer 24 jam habis, Anda wajib memasukkan data harian periode berikutnya.'}
+            Timer mengikuti waktu real-time jam sekarang menuju pukul 00:00 (pergantian hari). Setelah lewat pergantian hari, data baru untuk tanggal berikutnya akan langsung dapat diinput kembali.
           </p>
         </div>
       </GlassCard>
