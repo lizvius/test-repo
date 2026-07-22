@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GlassCard } from '../components/common/GlassCard';
 import { Announcement } from '../types';
-import { getAnnouncements } from '../firebase/services/announcementService';
+import { subscribeToAnnouncements } from '../firebase/services/announcementService';
 import { formatWIBDate } from '../utils/format';
 import { Megaphone, Pin, Calendar, RefreshCw } from 'lucide-react';
 
@@ -9,20 +9,14 @@ export const PengumumanPage: React.FC = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchAnnouncements = async () => {
-    setIsLoading(true);
-    try {
-      const data = await getAnnouncements();
-      setAnnouncements(data || []);
-    } catch (err) {
-      console.error('Failed to load announcements:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchAnnouncements();
+    setIsLoading(true);
+    const unsubscribe = subscribeToAnnouncements((data) => {
+      setAnnouncements(data || []);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -39,7 +33,7 @@ export const PengumumanPage: React.FC = () => {
         </div>
 
         <button
-          onClick={fetchAnnouncements}
+          onClick={() => {}}
           disabled={isLoading}
           className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white"
         >

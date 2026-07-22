@@ -5,13 +5,26 @@ import {
   deleteDoc,
   getDocs,
   query,
-  orderBy
+  orderBy,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../config';
 import { handleFirestoreError, OperationType } from '../error';
 import { Announcement } from '../../types';
 
 const COLLECTION_NAME = 'announcements';
+
+export function subscribeToAnnouncements(onUpdate: (anns: Announcement[]) => void): () => void {
+  const annRef = collection(db, COLLECTION_NAME);
+  const q = query(annRef, orderBy('createdAt', 'desc'));
+
+  return onSnapshot(q, (snapshot) => {
+    const anns = snapshot.docs.map((docSnap) => docSnap.data() as Announcement);
+    onUpdate(anns);
+  }, (error) => {
+    console.error('Error listening to announcements:', error);
+  });
+}
 
 export async function getAnnouncements(): Promise<Announcement[]> {
   try {

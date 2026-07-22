@@ -1,6 +1,11 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DailyReport, DailyReportFormData } from '../types';
-import { createDailyReport, getReportsByTelegramId, getAllReports, updateReportStatus } from '../firebase/services/reportService';
+import { 
+  createDailyReport, 
+  subscribeToUserReports, 
+  subscribeToAllReports, 
+  updateReportStatus 
+} from '../firebase/services/reportService';
 import { syncReportToSheetsApi } from '../services/api';
 import { useAuth } from './useAuth';
 
@@ -13,28 +18,28 @@ export function useReports() {
   const role = userProfile?.role;
   const telegramUserId = telegramUser?.id;
 
-  const fetchReports = useCallback(async () => {
-    if (!telegramUserId) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      let data: DailyReport[] = [];
-      if (role === 'Admin' || role === 'Owner') {
-        data = await getAllReports();
-      } else {
-        data = await getReportsByTelegramId(String(telegramUserId));
-      }
-      setReports(data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal mengambil data laporan.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [telegramUserId, role]);
-
   useEffect(() => {
-    fetchReports();
-  }, [fetchReports]);
+    if (!telegramUserId) return;
+    
+    setIsLoading(true);
+    let unsubscribe: () => void;
+    
+    if (role === 'Admin' || role === 'Owner') {
+      unsubscribe = subscribeToAllReports((data) => {
+        setReports(data || []);
+        setIsLoading(false);
+      });
+    } else {
+      unsubscribe = subscribeToUserReports(String(telegramUserId), (data) => {
+        setReports(data || []);
+        setIsLoading(false);
+      });
+    }
+    
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [telegramUserId, role]);
 
   const submitReport = async (formData: DailyReportFormData) => {
     if (!telegramUser) throw new Error('Pengguna tidak terautentikasi');
@@ -50,8 +55,7 @@ export function useReports() {
         },
         formData
       );
-      setReports((prev) => [newReport, ...prev]);
-
+      
       // Sync report to Google Sheets automatically
       syncReportToSheetsApi(newReport).catch((err) => {
         console.warn('[Google Sheets] Auto sync report failed:', err);
@@ -72,9 +76,6 @@ export function useReports() {
     setError(null);
     try {
       await updateReportStatus(reportId, status);
-      setReports((prev) => 
-        prev.map(r => r.reportId === reportId ? { ...r, result: status } : r)
-      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Gagal mengubah status.';
       setError(msg);
@@ -88,7 +89,7 @@ export function useReports() {
     reports,
     isLoading,
     error,
-    refetch: fetchReports,
+    refetch: () => {}, // Handled by real-time listener
     submitReport,
     updateStatus
   };

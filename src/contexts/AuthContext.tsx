@@ -99,75 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initData = webApp.initData;
     const tgUser = webApp.initDataUnsafe?.user;
 
-    // SWR Cache: Instantly retrieve from localStorage cache for instant UI response
-    let cachedProfile: UserProfile | null = null;
-    if (tgUser) {
-      const cachedProfileStr = localStorage.getItem(`azurlize_profile_${tgUser.id}`);
-      if (cachedProfileStr) {
-        try {
-          cachedProfile = JSON.parse(cachedProfileStr);
-        } catch {
-          // ignore
-        }
-      }
-    }
-
-    // Fast-path: If cache is found, render the page IMMEDIATELY
-    if (tgUser && cachedProfile) {
-      console.log('[AuthContext] SWR Cache found. Rendering instantly:', cachedProfile);
-      setState({
-        isAuthenticated: true,
-        telegramUser: {
-          id: tgUser.id,
-          first_name: tgUser.first_name || '',
-          last_name: tgUser.last_name || '',
-          username: tgUser.username || '',
-          photo_url: tgUser.photo_url || ''
-        },
-        userProfile: cachedProfile,
-        token: localStorage.getItem(`azurlize_token_${tgUser.id}`) || 'cached_token',
-        initData,
-        error: null,
-        isTelegramContext: true,
-        isLoading: false
-      });
-
-      // Silently verify and revalidate in the background
-      try {
-        const apiResult = await withTimeout(verifyTelegramInitDataApi(initData), 1500, { success: false, error: 'Timeout' });
-        if (apiResult.success && apiResult.data) {
-          const freshTgUser = apiResult.data.telegramUser;
-          const freshToken = apiResult.data.token;
-          const telegramId = String(freshTgUser.id);
-
-          localStorage.setItem(`azurlize_token_${freshTgUser.id}`, freshToken);
-          localStorage.setItem('azurlize_session_token', freshToken);
-
-          const freshProfile = await withTimeout(getUserProfile(telegramId), 3500, cachedProfile);
-          if (freshProfile) {
-            localStorage.setItem(`azurlize_profile_${freshTgUser.id}`, JSON.stringify(freshProfile));
-          }
-
-          setState((prev) => ({
-            ...prev,
-            telegramUser: {
-              id: freshTgUser.id,
-              first_name: freshTgUser.first_name || '',
-              last_name: freshTgUser.last_name || '',
-              username: freshTgUser.username || '',
-              photo_url: freshTgUser.photo_url || ''
-            },
-            userProfile: freshProfile,
-            token: freshToken,
-            isAuthenticated: freshProfile !== null
-          }));
-        }
-      } catch (bgErr) {
-        console.warn('[AuthContext] Background revalidation failed, using cached profile:', bgErr);
-      }
-      return;
-    }
-
     // Default-path (No Cache): Fast API call + Fast Firestore request with quick timeout limits
     try {
       const apiResult = await withTimeout(verifyTelegramInitDataApi(initData), 1500, { success: false, error: 'Timeout' });
@@ -183,13 +114,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (dbErr) {
           console.warn('[AuthContext] Firestore profile fetch failed:', dbErr);
         }
-
-        // Cache for subsequent fast logins
-        if (profile) {
-          localStorage.setItem(`azurlize_profile_${freshTgUser.id}`, JSON.stringify(profile));
-        }
-        localStorage.setItem(`azurlize_token_${freshTgUser.id}`, token);
-        localStorage.setItem('azurlize_session_token', token);
 
         await finishLoading({
           isAuthenticated: profile !== null,
@@ -221,10 +145,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           profile = await withTimeout(getUserProfile(telegramId), 3500, null);
         } catch (dbErr) {
           console.warn('[AuthContext] Fallback Firestore profile fetch failed:', dbErr);
-        }
-
-        if (profile) {
-          localStorage.setItem(`azurlize_profile_${fallbackTgUser.id}`, JSON.stringify(profile));
         }
 
         await finishLoading({
@@ -267,12 +187,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setState((prev) => {
           if (!prev.telegramUser) return prev;
           
-          if (profile) {
-            localStorage.setItem(`azurlize_profile_${prev.telegramUser.id}`, JSON.stringify(profile));
-          } else {
-            localStorage.removeItem(`azurlize_profile_${prev.telegramUser.id}`);
-          }
-          
           return {
             ...prev,
             userProfile: profile,
@@ -285,29 +199,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [state.telegramUser?.id]);
 
-  useEffect(() => {
-    if (state.userProfile && state.telegramUser) {
-      localStorage.setItem('azurlize_user_registered', 'true');
-      localStorage.setItem('azurlize_last_telegram_id', String(state.telegramUser.id));
-      localStorage.setItem('azurlize_last_telegram_user', JSON.stringify(state.telegramUser));
-      localStorage.setItem('azurlize_last_profile', JSON.stringify(state.userProfile));
-      if (state.token) {
-        localStorage.setItem('azurlize_last_token', state.token);
-      }
-    }
-  }, [state.userProfile, state.telegramUser, state.token]);
-
   const refreshProfile = async (): Promise<UserProfile | null> => {
     if (!state.telegramUser) return null;
     try {
       const telegramId = String(state.telegramUser.id);
       const profile = await withTimeout(getUserProfile(telegramId), 1200, state.userProfile);
-
-      if (profile) {
-        localStorage.setItem(`azurlize_profile_${telegramId}`, JSON.stringify(profile));
-      } else {
-        localStorage.removeItem(`azurlize_profile_${telegramId}`);
-      }
 
       setState((prev) => ({ ...prev, userProfile: profile }));
       return profile;
@@ -318,12 +214,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    if (state.telegramUser) {
-      const telegramId = String(state.telegramUser.id);
-      localStorage.removeItem(`azurlize_profile_${telegramId}`);
-      localStorage.removeItem(`azurlize_token_${telegramId}`);
-    }
-    localStorage.removeItem('azurlize_session_token');
     setState({
       isAuthenticated: false,
       isLoading: false,
@@ -354,11 +244,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const freshProfile = await withTimeout(getUserProfile(telegramId), 1200, null);
             
             if (freshProfile) {
-              localStorage.setItem(`azurlize_profile_${telegramId}`, JSON.stringify(freshProfile));
-              localStorage.setItem(`azurlize_token_${telegramId}`, freshToken);
-              localStorage.setItem('azurlize_session_token', freshToken);
-              localStorage.setItem('azurlize_user_registered', 'true');
-              
               setState({
                 isAuthenticated: true,
                 isLoading: false,
@@ -378,54 +263,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return;
             }
           }
-        }
-      }
-
-      // 2. Fallback: If not in Telegram but we have saved last registered user info, restore it
-      const lastTgId = localStorage.getItem('azurlize_last_telegram_id');
-      const lastTgUserStr = localStorage.getItem('azurlize_last_telegram_user');
-      const lastToken = localStorage.getItem('azurlize_last_token');
-      const lastProfileStr = localStorage.getItem('azurlize_last_profile');
-
-      if (lastTgId && lastToken && lastProfileStr) {
-        let lastProfile = null;
-        try {
-          lastProfile = JSON.parse(lastProfileStr);
-        } catch {
-          // ignore
-        }
-        
-        let lastTgUser = null;
-        if (lastTgUserStr) {
-          try {
-            lastTgUser = JSON.parse(lastTgUserStr);
-          } catch {
-            // ignore
-          }
-        }
-
-        if (lastProfile) {
-          localStorage.setItem('azurlize_session_token', lastToken);
-          localStorage.setItem(`azurlize_token_${lastTgId}`, lastToken);
-          localStorage.setItem(`azurlize_profile_${lastTgId}`, JSON.stringify(lastProfile));
-          
-          setState({
-            isAuthenticated: true,
-            isLoading: false,
-            telegramUser: lastTgUser || {
-              id: Number(lastTgId),
-              first_name: lastProfile.firstName || '',
-              last_name: lastProfile.lastName || '',
-              username: lastProfile.username || '',
-              photo_url: lastProfile.photoUrl || ''
-            },
-            userProfile: lastProfile,
-            token: lastToken,
-            initData: '',
-            error: null,
-            isTelegramContext: false
-          });
-          return;
         }
       }
 

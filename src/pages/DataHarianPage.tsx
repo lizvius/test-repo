@@ -7,7 +7,7 @@ import { useReports } from '../hooks/useReports';
 import { useAuth } from '../hooks/useAuth';
 import { DailyReportFormData, DailyReport, SystemSettings } from '../types';
 import { formatUsername, formatWIBDate, getWIBDate, getWIBMonday } from '../utils/format';
-import { getSystemSettings } from '../firebase/services/settingService';
+import { subscribeToSystemSettings } from '../firebase/services/settingService';
 import { sendReportToTelegramApi } from '../services/api';
 import { 
   CalendarClock, 
@@ -426,6 +426,15 @@ export const DataHarianPage: React.FC = () => {
     message?: string;
   }>({ status: 'idle' });
 
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToSystemSettings((s) => {
+      setSettings(s);
+    });
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     const rawTg = formData.applicantTelegramUsername;
     if (!rawTg || !rawTg.trim()) {
@@ -589,20 +598,21 @@ export const DataHarianPage: React.FC = () => {
 
       await submitReport(reportData);
       
-      // Fetch settings to get Group ID and Topic ID
+      // Send to Telegram using real-time settings
       try {
-        const sysSettings = await getSystemSettings();
-        const groupId = sysSettings.telegramGroupId;
-        let topicId = '';
-        if (targetGrup === 'T0') topicId = sysSettings.telegramTopicT0 || '';
-        if (targetGrup === 'V0') topicId = sysSettings.telegramTopicV0 || '';
-        if (targetGrup === 'T3') topicId = sysSettings.telegramTopicT3 || '';
+        if (settings) {
+          const groupId = settings.telegramGroupId;
+          let topicId = '';
+          if (targetGrup === 'T0') topicId = settings.telegramTopicT0 || '';
+          if (targetGrup === 'V0') topicId = settings.telegramTopicV0 || '';
+          if (targetGrup === 'T3') topicId = settings.telegramTopicT3 || '';
 
-        // Call our proxy server to send the message to Telegram
-        if (groupId) {
-          const res = await sendReportToTelegramApi(reportData, formData.videoUrl, groupId, topicId);
-          if (!res.success) {
-            console.error('Failed to send to telegram:', res.error);
+          // Call our proxy server to send the message to Telegram
+          if (groupId) {
+            const res = await sendReportToTelegramApi(reportData, formData.videoUrl, groupId, topicId);
+            if (!res.success) {
+              console.error('Failed to send to telegram:', res.error);
+            }
           }
         }
       } catch (e) {

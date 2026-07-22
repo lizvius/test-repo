@@ -7,8 +7,8 @@ import { useAuth } from '../hooks/useAuth';
 import { useReports } from '../hooks/useReports';
 import { formatUsername, formatWIBDate } from '../utils/format';
 import { Announcement } from '../types';
-import { getAnnouncements } from '../firebase/services/announcementService';
-import { getSystemSettings } from '../firebase/services/settingService';
+import { subscribeToAnnouncements } from '../firebase/services/announcementService';
+import { subscribeToSystemSettings } from '../firebase/services/settingService';
 import { 
   ClipboardPen, 
   CalendarClock,
@@ -36,19 +36,20 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
   const [announcementHeader, setAnnouncementHeader] = useState<string>('');
 
   useEffect(() => {
-    async function loadDashboardData() {
-      try {
-        const anns = await getAnnouncements();
-        setAnnouncements(anns || []);
-        const sysSettings = await getSystemSettings();
-        if (sysSettings?.announcementHeader) {
-          setAnnouncementHeader(sysSettings.announcementHeader);
-        }
-      } catch (err) {
-        console.error('Error loading dashboard extra data:', err);
+    const unsubAnn = subscribeToAnnouncements((anns) => {
+      setAnnouncements(anns || []);
+    });
+
+    const unsubSettings = subscribeToSystemSettings((sysSettings) => {
+      if (sysSettings?.announcementHeader) {
+        setAnnouncementHeader(sysSettings.announcementHeader);
       }
-    }
-    loadDashboardData();
+    });
+
+    return () => {
+      unsubAnn();
+      unsubSettings();
+    };
   }, []);
 
   // Calculate my stats

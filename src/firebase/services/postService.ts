@@ -11,7 +11,8 @@ import {
   updateDoc, 
   doc,
   getDoc,
-  setDoc
+  setDoc,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../config';
 import { BatchPost } from '../../types';
@@ -68,6 +69,29 @@ export const getRecruiterPosts = async (
   } catch (error) {
     handleFirestoreError(error, OperationType.LIST, POSTS_COLLECTION);
   }
+};
+
+export const subscribeToRecruiterPosts = (
+  telegramId: string,
+  callback: (posts: BatchPost[]) => void,
+  limitCount: number = 50
+) => {
+  const q = query(
+    collection(db, POSTS_COLLECTION),
+    where('telegramId', '==', telegramId),
+    orderBy('createdAt', 'desc'),
+    limit(limitCount)
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const posts = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    })) as BatchPost[];
+    callback(posts);
+  }, (error) => {
+    handleFirestoreError(error, OperationType.LIST, POSTS_COLLECTION);
+  });
 };
 
 export const archiveOldPosts = async () => {

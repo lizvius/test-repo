@@ -17,7 +17,6 @@ import { PostinganPage } from './pages/PostinganPage';
 import { ProfilPage } from './pages/ProfilPage';
 import { AdminPage } from './pages/AdminPage';
 import { OwnerPage } from './pages/OwnerPage';
-import { ContinueLoginPage } from './pages/ContinueLoginPage';
 import { MainLayout } from './layouts/MainLayout';
 import { TabType } from './components/navigation/BottomNav';
 import { GlassCard } from './components/common/GlassCard';
@@ -38,10 +37,6 @@ const AppContent: React.FC = () => {
 
   // If opened in browser without Telegram WebApp context
   if (!isTelegramContext && !isAuthenticated) {
-    const isRegistered = localStorage.getItem('azurlize_user_registered') === 'true';
-    if (isRegistered && !forceShowInstructions) {
-      return <ContinueLoginPage onShowInstructions={() => setForceShowInstructions(true)} />;
-    }
     return <BrowserNoticePage />;
   }
 

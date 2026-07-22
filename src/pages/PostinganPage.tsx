@@ -5,7 +5,7 @@ import { Button } from '../components/common/Button';
 import { useAuth } from '../hooks/useAuth';
 import { triggerHaptic } from '../telegram/webapp';
 import { getSystemSettings } from '../firebase/services/settingService';
-import { createPost, getRecruiterPosts, archiveOldPosts } from '../firebase/services/postService';
+import { createPost, subscribeToRecruiterPosts, getRecruiterPosts, archiveOldPosts } from '../firebase/services/postService';
 import { SystemSettings, BatchPost } from '../types';
 import { getWIBDate } from '../utils/format';
 import { 
@@ -201,65 +201,57 @@ export const PostinganPage: React.FC = () => {
         }
       }
 
-      if (activeView !== 'buat') {
-        fetchHistory(true);
-        if (activeView === 'hari_ini') {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+      if (activeView === 'hari_ini') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     };
     init();
-  }, [activeView, userProfile?.telegramId]);
+  }, [userProfile?.telegramId]); // Only run on mount or profile change
+
+  // Real-time listener for posts
+  useEffect(() => {
+    if (!userProfile?.telegramId) return;
+
+    setIsLoadingHistory(true);
+    const unsubscribe = subscribeToRecruiterPosts(
+      userProfile.telegramId,
+      (fetchedPosts) => {
+        const normalizeDate = (d: string) => {
+          if (!d) return '';
+          const parts = d.split('-');
+          if (parts.length !== 3) return d;
+          if (parts[0].length === 2) return parts.reverse().join('-');
+          return d;
+        };
+
+        const today = getWIBDate();
+        const normalizedToday = normalizeDate(today);
+        
+        // Filter based on active view
+        const filtered = fetchedPosts.filter(p => {
+          const pDate = normalizeDate(p.date || '');
+          const isToday = pDate === normalizedToday;
+          
+          if (activeView === 'hari_ini') {
+            return isToday && !p.archived;
+          } else if (activeView === 'arsip') {
+            return (!isToday) || p.archived;
+          }
+          return false;
+        });
+
+        setPosts(filtered);
+        setIsLoadingHistory(false);
+        setHasMore(false); // Snapshots handle entire limit
+      },
+      100
+    );
+
+    return () => unsubscribe();
+  }, [userProfile?.telegramId, activeView]);
 
   const fetchHistory = async (reset: boolean = false) => {
-    if (!userProfile?.telegramId) return;
-    setIsLoadingHistory(true);
-    try {
-      const { posts: fetchedPosts, lastDoc: nextDoc } = await getRecruiterPosts(
-        userProfile.telegramId, 
-        10, 
-        reset ? undefined : lastDoc
-      );
-      
-      const normalizeDate = (d: string) => {
-        if (!d) return '';
-        const parts = d.split('-');
-        if (parts.length !== 3) return d;
-        // If it's DD-MM-YYYY (length 2 for first part), reverse it to YYYY-MM-DD
-        if (parts[0].length === 2) return parts.reverse().join('-');
-        return d;
-      };
-
-      const today = getWIBDate();
-      const normalizedToday = normalizeDate(today);
-      
-      // Filter based on active view
-      const filtered = fetchedPosts.filter(p => {
-        const pDate = normalizeDate(p.date || '');
-        const isToday = pDate === normalizedToday;
-        
-        if (activeView === 'hari_ini') {
-          return isToday && !p.archived;
-        } else if (activeView === 'arsip') {
-          // If it's not today, it's archive (or if explicitly archived)
-          return (!isToday) || p.archived;
-        }
-        return false;
-      });
-
-      if (reset) {
-        setPosts(filtered);
-      } else {
-        setPosts(prev => [...prev, ...filtered]);
-      }
-      
-      setLastDoc(nextDoc);
-      setHasMore(fetchedPosts.length === 10);
-    } catch (err) {
-      console.error('[Postingan] Error fetching history:', err);
-    } finally {
-      setIsLoadingHistory(false);
-    }
+    // Legacy fetch logic replaced by onSnapshot
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -438,15 +430,6 @@ export const PostinganPage: React.FC = () => {
 
         setStatus({ type: 'success', message: 'Batch Berhasil Dikirim!' });
         
-        // Optimistically add to posts state to ensure it shows up in Today tab
-        const optimisticPost: BatchPost = {
-          id: 'temp-' + Date.now(),
-          ...newPostData,
-          createdAt: new Date().toISOString(),
-          archived: false
-        };
-        setPosts(prev => [optimisticPost, ...prev]);
-
         setLinks([]);
         setBulkText('');
         setIsReviewingLinks(false);

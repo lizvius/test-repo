@@ -5,13 +5,42 @@ import {
   getDocs,
   query,
   where,
-  orderBy
+  orderBy,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../config';
 import { handleFirestoreError, OperationType } from '../error';
 import { DailyReport, DailyReportFormData } from '../../types';
 
 const COLLECTION_NAME = 'daily_reports';
+
+export function subscribeToUserReports(telegramId: string, onUpdate: (reports: DailyReport[]) => void): () => void {
+  const reportsRef = collection(db, COLLECTION_NAME);
+  const q = query(
+    reportsRef,
+    where('telegramId', '==', telegramId),
+    orderBy('createdAt', 'desc')
+  );
+
+  return onSnapshot(q, (snapshot) => {
+    const reports = snapshot.docs.map((docSnap) => docSnap.data() as DailyReport);
+    onUpdate(reports);
+  }, (error) => {
+    console.error('Error listening to user reports:', error);
+  });
+}
+
+export function subscribeToAllReports(onUpdate: (reports: DailyReport[]) => void): () => void {
+  const reportsRef = collection(db, COLLECTION_NAME);
+  const q = query(reportsRef, orderBy('createdAt', 'desc'));
+
+  return onSnapshot(q, (snapshot) => {
+    const reports = snapshot.docs.map((docSnap) => docSnap.data() as DailyReport);
+    onUpdate(reports);
+  }, (error) => {
+    console.error('Error listening to all reports:', error);
+  });
+}
 
 export async function createDailyReport(
   user: { telegramId: string; username: string; name: string },
