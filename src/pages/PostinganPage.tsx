@@ -199,10 +199,15 @@ export const PostinganPage: React.FC = () => {
       
       // Filter based on active view
       const filtered = fetchedPosts.filter(p => {
+        const pDate = p.date || '';
+        // Handle both YYYY-MM-DD and DD-MM-YYYY for transition
+        const isToday = pDate === today || pDate === today.split('-').reverse().join('-');
+        
         if (activeView === 'hari_ini') {
-          return p.date === today && !p.archived;
+          return isToday && !p.archived;
         } else if (activeView === 'arsip') {
-          return p.date < today || p.archived;
+          // If it's not today, it's archive (or if explicitly archived)
+          return (!isToday) || p.archived;
         }
         return false;
       });

@@ -351,16 +351,21 @@ app.post('/api/telegram/send-post', async (req: Request, res: Response) => {
       return;
     }
 
-    // Format Date: DD-MM-YYYY (WIB)
+    // Format Dates for display and database (WIB)
     const nowInJakarta = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' });
-    const now = new Date(nowInJakarta);
-    const dateStr = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear())}`;
+    const jakartaDate = new Date(nowInJakarta);
+    const yyyy = jakartaDate.getFullYear();
+    const mm = String(jakartaDate.getMonth() + 1).padStart(2, '0');
+    const dd = String(jakartaDate.getDate()).padStart(2, '0');
+    
+    const dateDb = `${yyyy}-${mm}-${dd}`;
+    const dateDisplay = `${dd}-${mm}-${yyyy}`;
     
     const endNumber = (startNumber || 1) + (links ? links.length : 0) - 1;
     const rangeStr = `${startNumber}-${endNumber}`;
     
     const recTag = recruiterUsername ? `@${recruiterUsername.replace(/^@/, '')}` : recruiterName;
-    const header = `${dateStr}\n\n${rangeStr}\n\n`;
+    const header = `${dateDisplay}\n\n${rangeStr}\n\n`;
     const footer = `\n\n👤 <b>Recruiter:</b> ${recTag}`;
     
     // Telegram limit is 1024. Let's aim for 1000 for safety.
