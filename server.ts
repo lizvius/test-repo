@@ -3,7 +3,7 @@ import path from 'path';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
-import { createServer as createViteServer } from 'vite';
+// import { createServer as createViteServer } from 'vite'; // Moved to dynamic import
 import { getOrCreateSpreadsheet, appendApprovedUserToSheet, appendReportToSheet } from './src/server/googleSheets';
 
 dotenv.config();
@@ -17,6 +17,11 @@ const JWT_SECRET = (process.env.JWT_SECRET || 'azurlizeteam_secret_jwt_key_2026'
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Health check for Vercel debugging
+app.get('/api/health', (_req, res) => {
+  res.json({ status: 'ok', environment: process.env.VERCEL ? 'vercel' : 'local' });
+});
 
 // Global JSON error handler for /api routes
 app.use('/api', (err: any, req: Request, res: Response, next: any) => {
@@ -539,7 +544,9 @@ app.post('/api/telegram/send-report', async (req: Request, res: Response) => {
 
 // Start Express Server and mount Vite Middleware
 async function startServer() {
-  if (process.env.NODE_ENV !== 'production') {
+  // Vite middleware for development
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa',
