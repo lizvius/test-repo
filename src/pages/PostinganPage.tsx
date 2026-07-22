@@ -453,93 +453,105 @@ export const PostinganPage: React.FC = () => {
             className="space-y-4"
           >
             {/* Form Section */}
-            <GlassCard className="p-4 space-y-6">
-              {/* Start Number & Multi-Platform Toggle */}
+            <div className="space-y-4">
+              {/* Step 1: Session Info */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-1.5">
-                    <Hash className="w-3 h-3 text-amber-400" />
+                <GlassCard className="p-3 bg-slate-950/60 border-slate-800/50">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1 flex items-center gap-1.5 mb-2">
+                    <Hash className="w-3 h-3 text-amber-500" />
                     Nomor Awal
                   </label>
                   <input
                     type="number"
                     value={startNumber}
                     onChange={(e) => setStartNumber(parseInt(e.target.value) || 1)}
-                    className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-black text-center text-sm outline-none focus:border-sky-500/50"
+                    className="w-full p-2 rounded-xl bg-slate-900 border border-slate-800 text-white font-black text-center text-base outline-none focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20 transition-all"
                   />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-1.5">
-                    <Globe className="w-3 h-3 text-sky-400" />
+                </GlassCard>
+                <GlassCard className="p-3 bg-slate-950/60 border-slate-800/50 flex flex-col justify-between">
+                  <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest px-1 flex items-center gap-1.5 mb-2">
+                    <Globe className="w-3 h-3 text-sky-500" />
                     Batch Ke
                   </label>
-                  <div className="w-full p-2.5 rounded-xl bg-slate-900/50 border border-slate-800/50 text-slate-400 font-bold text-center text-sm">
+                  <div className="w-full py-2 rounded-xl bg-sky-500/5 border border-sky-500/10 text-sky-400 font-black text-center text-base">
                     #{Math.ceil(startNumber / 10)}
                   </div>
-                </div>
+                </GlassCard>
               </div>
 
-              {/* Links Section */}
-              <div className="space-y-3">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <LinkIcon className="w-3.5 h-3.5 text-sky-400" />
-                    Daftar Link & Platform
+              {/* Step 2: Content Entry */}
+              <GlassCard className="p-4 space-y-6">
+                {/* Links Section */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                      <LinkIcon className="w-4 h-4 text-sky-400" />
+                      Daftar Link & Platform
+                    </label>
+                    <span className="text-[8px] text-emerald-400 font-black bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
+                      <ShieldCheck className="w-2.5 h-2.5" /> Anti Duplicate
+                    </span>
                   </div>
-                  <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" /> Anti Duplicate
-                  </span>
-                </label>
-                <div className="space-y-2">
-                  {links.map((link, idx) => (
-                    <div key={idx} className="flex flex-col gap-2 p-3 rounded-2xl bg-slate-950/40 border border-slate-800/50 shadow-inner group focus-within:border-sky-500/30 transition-all">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-slate-500 bg-slate-900 w-6 h-6 flex items-center justify-center rounded-lg border border-slate-800 shrink-0">
-                            {idx + 1}
-                          </span>
-                          <input
-                            type="text"
-                            value={link.url}
-                            onChange={(e) => updateLink(idx, e.target.value)}
-                            placeholder={`Link #${startNumber + idx}`}
-                            className="bg-transparent border-none text-white text-xs outline-none w-full placeholder:text-slate-700 font-medium"
-                          />
+                  
+                  <div className="space-y-2">
+                    {links.map((link, idx) => (
+                      <div 
+                        key={idx} 
+                        className={`flex flex-col gap-2 p-3 rounded-2xl transition-all border ${
+                          link.url 
+                            ? 'bg-slate-900/40 border-slate-700/50' 
+                            : 'bg-slate-950/40 border-slate-800/50'
+                        } focus-within:border-sky-500/40 focus-within:bg-slate-900/60 focus-within:ring-1 focus-within:ring-sky-500/10`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 flex-1">
+                            <span className={`text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-lg border shrink-0 transition-colors ${
+                              link.url ? 'text-sky-400 border-sky-500/30 bg-sky-500/5' : 'text-slate-600 border-slate-800 bg-slate-900'
+                            }`}>
+                              {idx + 1}
+                            </span>
+                            <input
+                              type="text"
+                              value={link.url}
+                              onChange={(e) => updateLink(idx, e.target.value)}
+                              placeholder={`Paste Link #${startNumber + idx}...`}
+                              className="bg-transparent border-none text-white text-xs outline-none w-full placeholder:text-slate-700 font-medium py-1"
+                            />
+                          </div>
+                          
+                          <button
+                            onClick={() => {
+                              const currentIdx = CHANNELS.findIndex(c => c.id === link.platform);
+                              const nextIdx = (currentIdx + 1) % CHANNELS.length;
+                              updatePlatform(idx, CHANNELS[nextIdx].id as SocialPlatform);
+                            }}
+                            className={`shrink-0 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center gap-1.5 border transition-all active:scale-90 shadow-sm ${
+                              CHANNELS.find(c => c.id === link.platform)?.color || 'text-slate-400 border-slate-800 bg-slate-900'
+                            }`}
+                          >
+                            <ChannelPlatformIcon id={link.platform} className="w-3 h-3" />
+                            <span className="hidden xs:inline">{link.platform === 'X (Twitter)' ? 'X' : link.platform}</span>
+                          </button>
                         </div>
-                        
-                        <button
-                          onClick={() => {
-                            const currentIdx = CHANNELS.findIndex(c => c.id === link.platform);
-                            const nextIdx = (currentIdx + 1) % CHANNELS.length;
-                            updatePlatform(idx, CHANNELS[nextIdx].id as SocialPlatform);
-                          }}
-                          className={`shrink-0 px-2 py-1 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 border transition-all active:scale-95 ${
-                            CHANNELS.find(c => c.id === link.platform)?.color || 'text-slate-400 border-slate-800 bg-slate-900'
-                          }`}
-                          title="Klik untuk ganti platform manual"
-                        >
-                          <ChannelPlatformIcon id={link.platform} className="w-3 h-3" />
-                          <span className="hidden xs:inline">{link.platform === 'X (Twitter)' ? 'X' : link.platform}</span>
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Images Section */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
-                    Upload Gambar ({images.length}/10)
-                  </label>
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-[10px] font-black text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors uppercase bg-sky-500/10 px-2 py-1 rounded-lg border border-sky-500/20"
-                  >
-                    <Plus className="w-3 h-3" /> Tambah
-                  </button>
-                </div>
+                {/* Step 3: Visual Assets */}
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between px-1">
+                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                      <ImageIcon className="w-4 h-4 text-sky-400" />
+                      Media Postingan ({images.length}/10)
+                    </label>
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-[9px] font-black text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-all uppercase bg-sky-500/10 px-3 py-1.5 rounded-xl border border-sky-500/20 active:scale-95"
+                    >
+                      <Plus className="w-3 h-3" /> Tambah
+                    </button>
+                  </div>
 
                 <input
                   type="file"
@@ -632,21 +644,33 @@ export const PostinganPage: React.FC = () => {
               </Button>
             </GlassCard>
             
-            {/* Tips Section */}
-            <div className="px-4 py-3 bg-sky-500/5 rounded-2xl border border-sky-500/10">
-              <h4 className="text-[10px] font-black text-sky-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
-                <AlertTriangle className="w-3 h-3 text-amber-500" /> Pentunjuk Penting
-              </h4>
-              <ul className="space-y-1.5">
-                <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
-                  <span className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 shrink-0" />
-                  Sistem akan **otomatis mendeteksi** platform berdasarkan link yang Anda masukkan.
-                </li>
-                <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
-                  <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
-                  Pengecekan **Duplikasi** aktif: Anda tidak dapat mengirim link yang sama dua kali dalam hari yang sama.
-                </li>
-              </ul>
+              {/* Tips Section */}
+              <div className="px-5 py-4 bg-slate-900/40 rounded-3xl border border-slate-800/50 shadow-inner">
+                <h4 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-2 mb-3">
+                  <AlertTriangle className="w-4 h-4 text-amber-500" /> 
+                  Informasi Input
+                </h4>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                      <Globe className="w-3 h-3 text-sky-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-300 uppercase leading-none mb-1">Deteksi Otomatis</p>
+                      <p className="text-[10px] text-slate-500 leading-relaxed font-medium">Sistem mengenali platform (FB, IG, TikTok, dll) segera setelah link ditempel.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-5 h-5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                      <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-slate-300 uppercase leading-none mb-1">Validasi Duplikat</p>
+                      <p className="text-[10px] text-slate-500 leading-relaxed font-medium">Link yang sudah dikirim hari ini tidak dapat dikirim ulang untuk menjaga kualitas data.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         )}
