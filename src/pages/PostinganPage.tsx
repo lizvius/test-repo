@@ -47,8 +47,8 @@ export const PostinganPage: React.FC = () => {
   const [status, setStatus] = useState<{ type: 'idle' | 'success' | 'error'; message?: string }>({ type: 'idle' });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Tabs & History State
-  const [activeHistoryTab, setActiveHistoryTab] = useState<'hari_ini' | 'arsip'>('hari_ini');
+  // View State
+  const [activeView, setActiveView] = useState<'buat' | 'hari_ini' | 'arsip'>('buat');
   const [posts, setPosts] = useState<BatchPost[]>([]);
   const [lastDoc, setLastDoc] = useState<any>(null);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -96,10 +96,12 @@ export const PostinganPage: React.FC = () => {
       const s = await getSystemSettings();
       setSettings(s);
       await archiveOldPosts(); // Auto archive old posts on mount
-      fetchHistory(true);
+      if (activeView !== 'buat') {
+        fetchHistory(true);
+      }
     };
     init();
-  }, [activeHistoryTab]);
+  }, [activeView]);
 
   const fetchHistory = async (reset: boolean = false) => {
     if (!userProfile?.telegramId) return;
@@ -113,13 +115,14 @@ export const PostinganPage: React.FC = () => {
       
       const today = new Date().toISOString().split('T')[0];
       
-      // Filter based on active tab
+      // Filter based on active view
       const filtered = fetchedPosts.filter(p => {
-        if (activeHistoryTab === 'hari_ini') {
+        if (activeView === 'hari_ini') {
           return p.date === today && !p.archived;
-        } else {
+        } else if (activeView === 'arsip') {
           return p.date < today || p.archived;
         }
+        return false;
       });
 
       if (reset) {
@@ -306,231 +309,255 @@ export const PostinganPage: React.FC = () => {
               <ImageIcon className="w-6 h-6 text-sky-400" />
               Batch Postingan
             </h1>
-            <p className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">
-              Kirim 10 Link & Gambar ke Grup
-            </p>
           </div>
         </div>
 
-        {/* Form Section */}
-        <GlassCard className="p-4 space-y-6">
-          {/* Start Number & Multi-Platform Toggle */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-1.5">
-                <Hash className="w-3 h-3 text-amber-400" />
-                Nomor Awal
-              </label>
-              <input
-                type="number"
-                value={startNumber}
-                onChange={(e) => setStartNumber(parseInt(e.target.value) || 1)}
-                className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-black text-center text-sm outline-none focus:border-sky-500/50"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-1.5">
-                <Globe className="w-3 h-3 text-sky-400" />
-                Batch Ke
-              </label>
-              <div className="w-full p-2.5 rounded-xl bg-slate-900/50 border border-slate-800/50 text-slate-400 font-bold text-center text-sm">
-                #{Math.ceil(startNumber / 10)}
-              </div>
-            </div>
-          </div>
+        {/* Main Navigation Tabs */}
+        <div className="flex p-1 bg-slate-950 rounded-2xl border border-slate-800 shadow-inner">
+          <button
+            onClick={() => { setActiveView('buat'); triggerHaptic('selection'); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
+              activeView === 'buat' 
+                ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-lg' 
+                : 'text-slate-600 hover:text-slate-400'
+            }`}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Buat Baru
+          </button>
+          <button
+            onClick={() => { setActiveView('hari_ini'); triggerHaptic('selection'); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
+              activeView === 'hari_ini' 
+                ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-lg' 
+                : 'text-slate-600 hover:text-slate-400'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            Hari Ini
+          </button>
+          <button
+            onClick={() => { setActiveView('arsip'); triggerHaptic('selection'); }}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
+              activeView === 'arsip' 
+                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-lg' 
+                : 'text-slate-600 hover:text-slate-400'
+            }`}
+          >
+            <Archive className="w-3.5 h-3.5" />
+            Arsip
+          </button>
+        </div>
 
-          {/* Links Section */}
-          <div className="space-y-3">
-            <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-2">
-              <LinkIcon className="w-3.5 h-3.5 text-sky-400" />
-              Daftar Link & Platform
-            </label>
-            <div className="space-y-3">
-              {links.map((link, idx) => (
-                <div key={idx} className="space-y-2 p-3 rounded-2xl bg-slate-950/40 border border-slate-800/50 shadow-inner group focus-within:border-sky-500/30 transition-all">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-black text-slate-600 bg-slate-900 px-2 py-0.5 rounded-md">
-                      #{startNumber + idx}
-                    </span>
-                    <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-                      {(['Facebook', 'X', 'Other'] as SocialPlatform[]).map(p => (
-                        <button
-                          key={p}
-                          onClick={() => updatePlatform(idx, p)}
-                          className={`px-2 py-1 rounded-md text-[9px] font-black uppercase transition-all flex items-center gap-1 ${
-                            link.platform === p 
-                              ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' 
-                              : 'text-slate-600 hover:text-slate-400'
-                          }`}
-                        >
-                          {getPlatformIcon(p)}
-                          {p === 'Other' ? 'Lain' : p}
-                        </button>
-                      ))}
+        {activeView === 'buat' && (
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-4"
+          >
+            {/* Form Section */}
+            <GlassCard className="p-4 space-y-6">
+              {/* Start Number & Multi-Platform Toggle */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-1.5">
+                    <Hash className="w-3 h-3 text-amber-400" />
+                    Nomor Awal
+                  </label>
+                  <input
+                    type="number"
+                    value={startNumber}
+                    onChange={(e) => setStartNumber(parseInt(e.target.value) || 1)}
+                    className="w-full p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white font-black text-center text-sm outline-none focus:border-sky-500/50"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-1.5">
+                    <Globe className="w-3 h-3 text-sky-400" />
+                    Batch Ke
+                  </label>
+                  <div className="w-full p-2.5 rounded-xl bg-slate-900/50 border border-slate-800/50 text-slate-400 font-bold text-center text-sm">
+                    #{Math.ceil(startNumber / 10)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Links Section */}
+              <div className="space-y-3">
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-2">
+                  <LinkIcon className="w-3.5 h-3.5 text-sky-400" />
+                  Daftar Link & Platform
+                </label>
+                <div className="space-y-3">
+                  {links.map((link, idx) => (
+                    <div key={idx} className="space-y-2 p-3 rounded-2xl bg-slate-950/40 border border-slate-800/50 shadow-inner group focus-within:border-sky-500/30 transition-all">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-black text-slate-600 bg-slate-900 px-2 py-0.5 rounded-md">
+                          #{startNumber + idx}
+                        </span>
+                        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+                          {(['Facebook', 'X', 'Other'] as SocialPlatform[]).map(p => (
+                            <button
+                              key={p}
+                              onClick={() => updatePlatform(idx, p)}
+                              className={`px-2 py-1 rounded-md text-[9px] font-black uppercase transition-all flex items-center gap-1 ${
+                                link.platform === p 
+                                  ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' 
+                                  : 'text-slate-600 hover:text-slate-400'
+                              }`}
+                            >
+                              {getPlatformIcon(p)}
+                              {p === 'Other' ? 'Lain' : p}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={link.url}
+                          onChange={(e) => updateLink(idx, e.target.value)}
+                          placeholder="Paste link postingan..."
+                          className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-sky-500/50 text-white text-[11px] outline-none transition-all placeholder:text-slate-700 font-medium"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Images Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
+                    Upload Gambar ({images.length}/10)
+                  </label>
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-[10px] font-black text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors uppercase bg-sky-500/10 px-2 py-1 rounded-lg border border-sky-500/20"
+                  >
+                    <Plus className="w-3 h-3" /> Tambah
+                  </button>
+                </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                {images.length === 0 ? (
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="group cursor-pointer aspect-video rounded-2xl border-2 border-dashed border-slate-800 hover:border-sky-500/30 bg-slate-950/30 flex flex-col items-center justify-center gap-3 transition-all active:scale-[0.98]"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 group-hover:text-sky-400 group-hover:border-sky-500/30 transition-colors shadow-lg">
+                      <Upload className="w-6 h-6" />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs font-bold text-slate-300 group-hover:text-white">Klik untuk upload gambar</p>
+                      <p className="text-[10px] text-slate-600 font-medium mt-1">Maksimal 10 gambar per batch</p>
                     </div>
                   </div>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      value={link.url}
-                      onChange={(e) => updateLink(idx, e.target.value)}
-                      placeholder="Paste link postingan..."
-                      className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-sky-500/50 text-white text-[11px] outline-none transition-all placeholder:text-slate-700 font-medium"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Images Section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between px-1">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider">
-                Upload Gambar ({images.length}/10)
-              </label>
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="text-[10px] font-black text-sky-400 hover:text-sky-300 flex items-center gap-1 transition-colors uppercase bg-sky-500/10 px-2 py-1 rounded-lg border border-sky-500/20"
-              >
-                <Plus className="w-3 h-3" /> Tambah
-              </button>
-            </div>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              multiple
-              accept="image/*"
-              className="hidden"
-            />
-
-            {images.length === 0 ? (
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className="group cursor-pointer aspect-video rounded-2xl border-2 border-dashed border-slate-800 hover:border-sky-500/30 bg-slate-950/30 flex flex-col items-center justify-center gap-3 transition-all active:scale-[0.98]"
-              >
-                <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 group-hover:text-sky-400 group-hover:border-sky-500/30 transition-colors shadow-lg">
-                  <Upload className="w-6 h-6" />
-                </div>
-                <div className="text-center">
-                  <p className="text-xs font-bold text-slate-300 group-hover:text-white">Klik untuk upload gambar</p>
-                  <p className="text-[10px] text-slate-600 font-medium mt-1">Maksimal 10 gambar per batch</p>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <AnimatePresence mode="popLayout">
-                  {images.map((img, idx) => (
-                    <motion.div
-                      key={`${idx}-${img.substring(0, 20)}`}
-                      layout
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      className="relative aspect-square rounded-xl overflow-hidden border border-slate-800 bg-slate-900 group shadow-md"
-                    >
-                      <img src={img} alt="Preview" className="w-full h-full object-cover" />
-                      <button
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center hover:bg-rose-500 transition-colors z-10"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-                
-                {images.length < 10 && (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="aspect-square rounded-xl border-2 border-dashed border-slate-800 hover:border-sky-500/30 bg-slate-950/30 flex flex-col items-center justify-center gap-1.5 transition-all text-slate-500 hover:text-sky-400 group"
-                  >
-                    <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                    <span className="text-[10px] font-black uppercase tracking-tighter">Tambah</span>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-
-          <AnimatePresence>
-            {status.type !== 'idle' && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className={`p-4 rounded-2xl flex items-center gap-3 ${
-                  status.type === 'success' 
-                    ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' 
-                    : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
-                }`}
-              >
-                {status.type === 'success' ? (
-                  <CheckCircle2 className="w-5 h-5 shrink-0" />
                 ) : (
-                  <AlertCircle className="w-5 h-5 shrink-0" />
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <AnimatePresence mode="popLayout">
+                      {images.map((img, idx) => (
+                        <motion.div
+                          key={`${idx}-${img.substring(0, 20)}`}
+                          layout
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.8 }}
+                          className="relative aspect-square rounded-xl overflow-hidden border border-slate-800 bg-slate-900 group shadow-md"
+                        >
+                          <img src={img} alt="Preview" className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => removeImage(idx)}
+                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur-md text-white flex items-center justify-center hover:bg-rose-500 transition-colors z-10"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                    
+                    {images.length < 10 && (
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="aspect-square rounded-xl border-2 border-dashed border-slate-800 hover:border-sky-500/30 bg-slate-950/30 flex flex-col items-center justify-center gap-1.5 transition-all text-slate-500 hover:text-sky-400 group"
+                      >
+                        <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" />
+                        <span className="text-[10px] font-black uppercase tracking-tighter">Tambah</span>
+                      </button>
+                    )}
+                  </div>
                 )}
-                <p className="text-xs font-black leading-tight">{status.message}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
 
-          <Button
-            fullWidth
-            onClick={handleSubmit}
-            disabled={isUploading || links.filter(l => l.url.trim() !== '').length === 0 || images.length === 0}
-            isLoading={isUploading}
-            icon={<Send className="w-4 h-4" />}
-          >
-            Kirim Batch Postingan
-          </Button>
-        </GlassCard>
+              <AnimatePresence>
+                {status.type !== 'idle' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={`p-4 rounded-2xl flex items-center gap-3 ${
+                      status.type === 'success' 
+                        ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' 
+                        : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
+                    }`}
+                  >
+                    {status.type === 'success' ? (
+                      <CheckCircle2 className="w-5 h-5 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-5 h-5 shrink-0" />
+                    )}
+                    <p className="text-xs font-black leading-tight">{status.message}</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-        {/* History Section with Tabs */}
-        <div className="space-y-4 pt-2">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between px-1">
-              <h3 className="text-sm font-black text-white flex items-center gap-2">
-                <History className="w-4 h-4 text-sky-400" />
-                Riwayat Aktivitas
-              </h3>
-            </div>
+              <Button
+                fullWidth
+                onClick={handleSubmit}
+                disabled={isUploading || links.filter(l => l.url.trim() !== '').length === 0 || images.length === 0}
+                isLoading={isUploading}
+                icon={<Send className="w-4 h-4" />}
+              >
+                Kirim Batch Postingan
+              </Button>
+            </GlassCard>
             
-            {/* Tabs Trigger */}
-            <div className="flex p-1 bg-slate-950 rounded-2xl border border-slate-800 shadow-inner">
-              <button
-                onClick={() => { setActiveHistoryTab('hari_ini'); triggerHaptic('selection'); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
-                  activeHistoryTab === 'hari_ini' 
-                    ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-lg' 
-                    : 'text-slate-600 hover:text-slate-400'
-                }`}
-              >
-                <Calendar className="w-3 h-3" />
-                Hari Ini
-              </button>
-              <button
-                onClick={() => { setActiveHistoryTab('arsip'); triggerHaptic('selection'); }}
-                className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
-                  activeHistoryTab === 'arsip' 
-                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-lg' 
-                    : 'text-slate-600 hover:text-slate-400'
-                }`}
-              >
-                <Archive className="w-3 h-3" />
-                Arsip
-              </button>
+            {/* Tips Section */}
+            <div className="px-4 py-3 bg-sky-500/5 rounded-2xl border border-sky-500/10">
+              <h4 className="text-[10px] font-black text-sky-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
+                <AlertCircle className="w-3 h-3" /> Petunjuk
+              </h4>
+              <ul className="space-y-1">
+                <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
+                  <span className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 shrink-0" />
+                  Bot akan mengirim sebagai Media Group (Album) berisi 10 gambar ke grup Telegram.
+                </li>
+              </ul>
             </div>
-          </div>
+          </motion.div>
+        )}
 
-          <div className="space-y-3 min-h-[200px]">
+        {/* History Views (Hari Ini & Arsip) */}
+        {(activeView === 'hari_ini' || activeView === 'arsip') && (
+          <motion.div
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="space-y-3"
+          >
             {posts.length === 0 && !isLoadingHistory ? (
-              <div className="py-12 text-center bg-slate-900/40 rounded-3xl border border-slate-800/50">
+              <div className="py-20 text-center bg-slate-900/40 rounded-3xl border border-slate-800/50">
                 <Clock className="w-8 h-8 text-slate-700 mx-auto mb-2" />
                 <p className="text-xs font-bold text-slate-500">
-                  {activeHistoryTab === 'hari_ini' ? 'Belum ada postingan hari ini' : 'Folder arsip kosong'}
+                  {activeView === 'hari_ini' ? 'Belum ada postingan hari ini' : 'Folder arsip kosong'}
                 </p>
               </div>
             ) : (
@@ -607,25 +634,8 @@ export const PostinganPage: React.FC = () => {
                 )}
               </button>
             )}
-          </div>
-        </div>
-
-        {/* Tips Section */}
-        <div className="px-4 py-3 bg-sky-500/5 rounded-2xl border border-sky-500/10">
-          <h4 className="text-[10px] font-black text-sky-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
-            <AlertCircle className="w-3 h-3" /> Petunjuk
-          </h4>
-          <ul className="space-y-1">
-            <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
-              <span className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 shrink-0" />
-              Gunakan tab **Arsip** untuk melihat postingan dari hari-hari sebelumnya.
-            </li>
-            <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
-              <span className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 shrink-0" />
-              Timer di atas menunjukkan sisa waktu pengumpulan batch untuk hari ini.
-            </li>
-          </ul>
-        </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
