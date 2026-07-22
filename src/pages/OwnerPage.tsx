@@ -14,7 +14,7 @@ import {
   getSystemSettings,
   updateSystemSettings
 } from '../firebase/services/settingService';
-import { Key, Megaphone, Settings, Users, ShieldAlert, Plus, Trash2, CheckCircle2, BarChart2 } from 'lucide-react';
+import { Key, Megaphone, Settings, Users, ShieldAlert, Plus, Trash2, CheckCircle2, BarChart2, Bot, Globe } from 'lucide-react';
 
 export const OwnerPage: React.FC = () => {
   const { users, changeRole, refetch: refetchUsers } = useRecruiters();
@@ -31,8 +31,45 @@ export const OwnerPage: React.FC = () => {
   // Settings State
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState<string | null>(null);
+  const [isSettingWebhook, setIsSettingWebhook] = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState<string | null>(null);
+  const [botInfo, setBotInfo] = useState<{ first_name: string; username: string } | null>(null);
 
   const [activeSubTab, setActiveSubTab] = useState<'users' | 'announcements' | 'settings'>('users');
+
+  const fetchBotInfo = async () => {
+    try {
+      const response = await fetch('/api/telegram/bot-info');
+      const result = await response.json();
+      if (result.success) {
+        setBotInfo(result.data);
+      }
+    } catch (err) {
+      console.error('Error fetching bot info:', err);
+    }
+  };
+
+  const handleSetWebhook = async () => {
+    setIsSettingWebhook(true);
+    setWebhookStatus(null);
+    try {
+      const response = await fetch('/api/telegram/set-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: window.location.origin })
+      });
+      const result = await response.json();
+      if (result.success) {
+        setWebhookStatus('✅ Webhook Bot berhasil diaktifkan!');
+      } else {
+        setWebhookStatus('❌ Gagal: ' + (result.error || 'Terjadi kesalahan'));
+      }
+    } catch (err) {
+      setWebhookStatus('❌ Gagal menghubungi server');
+    } finally {
+      setIsSettingWebhook(false);
+    }
+  };
 
   const loadOwnerData = async () => {
     try {
@@ -40,6 +77,9 @@ export const OwnerPage: React.FC = () => {
       setAnnouncements(anns || []);
       const sys = await getSystemSettings();
       setSettings(sys);
+      if (activeSubTab === 'settings') {
+        fetchBotInfo();
+      }
     } catch (err) {
       console.error('Error loading owner data:', err);
     }
@@ -47,7 +87,7 @@ export const OwnerPage: React.FC = () => {
 
   useEffect(() => {
     loadOwnerData();
-  }, []);
+  }, [activeSubTab]);
 
   const handleCreateAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -387,6 +427,55 @@ export const OwnerPage: React.FC = () => {
             <Button fullWidth isLoading={isSavingSettings} onClick={handleSaveSettings}>
               Simpan Pengaturan
             </Button>
+          </div>
+
+          {/* Webhook Configuration */}
+          <div className="mt-8 pt-6 border-t border-slate-800/50 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Bot className="w-4 h-4 text-sky-400" />
+                <h4 className="text-xs font-black text-white uppercase tracking-tighter">Konfigurasi Bot Webhook</h4>
+              </div>
+              {botInfo && (
+                <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800">
+                  <span className="text-[9px] font-bold text-emerald-400">{botInfo.first_name}</span>
+                  <span className="text-[9px] text-slate-500">@{botInfo.username}</span>
+                </div>
+              )}
+            </div>
+            
+            <GlassCard className="p-4 bg-slate-950/50 border-slate-800 space-y-3">
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Aktifkan Webhook agar Bot dapat merespon perintah <code>/id</code> atau <code>/info</code> langsung di grup Telegram untuk mendapatkan ID Chat/Topic secara otomatis.
+              </p>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">Webhook URL saat ini:</span>
+                <div className="flex items-center gap-2 bg-slate-900 px-3 py-2 rounded-xl border border-slate-800">
+                  <Globe className="w-3 h-3 text-slate-500" />
+                  <span className="text-[10px] text-slate-300 font-mono truncate">{window.location.origin}/api/telegram/webhook</span>
+                </div>
+              </div>
+
+              {webhookStatus && (
+                <div className={`text-[10px] font-bold p-2 rounded-lg ${webhookStatus.includes('✅') ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                  {webhookStatus}
+                </div>
+              )}
+
+              <Button 
+                variant="secondary" 
+                fullWidth 
+                onClick={handleSetWebhook}
+                isLoading={isSettingWebhook}
+              >
+                Aktifkan Webhook Bot
+              </Button>
+              
+              <p className="text-[9px] text-slate-500 italic text-center">
+                *Hanya bot yang dikonfigurasi di server yang akan merespon.
+              </p>
+            </GlassCard>
           </div>
         </GlassCard>
       )}

@@ -198,6 +198,107 @@ app.post('/api/sheets/sync-report', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * TELEGRAM WEBHOOK HANDLER
+ * Allows the bot to respond to commands like /id or /info in groups.
+ * To use: Set your webhook URL to https://<your-app-url>/api/telegram/webhook
+ */
+app.post('/api/telegram/webhook', async (req: Request, res: Response) => {
+  try {
+    const { message, edited_message, channel_post, edited_channel_post } = req.body;
+    
+    // Process standard messages
+    const msg = message || edited_message || channel_post || edited_channel_post;
+    
+    if (msg && msg.text && (msg.text.startsWith('/id') || msg.text.startsWith('/info'))) {
+      const chatId = msg.chat.id;
+      const threadId = msg.message_thread_id;
+      const chatTitle = msg.chat.title || msg.chat.username || msg.chat.first_name || 'Private Chat';
+      const isTopic = Boolean(threadId);
+
+      let responseText = `<b>📍 TELEGRAM CHAT INFO</b>\n\n`;
+      responseText += `🏷️ <b>Title:</b> ${chatTitle}\n`;
+      responseText += `🆔 <b>Chat ID:</b> <code>${chatId}</code>\n`;
+      
+      if (isTopic) {
+        responseText += `🧵 <b>Topic ID:</b> <code>${threadId}</code>\n`;
+      }
+      
+      responseText += `\n<i>Gunakan ID di atas pada Pengaturan Aplikasi AzurLize.</i>`;
+
+      // Reply to the message
+      await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: responseText,
+          parse_mode: 'HTML',
+          reply_to_message_id: msg.message_id,
+          message_thread_id: threadId // Ensure reply stays in the same topic
+        })
+      });
+    }
+
+    // Always respond 200 OK to Telegram
+    res.status(200).send('OK');
+  } catch (err) {
+    console.error('[Telegram Webhook] Error:', err);
+    res.status(200).send('OK'); // Still send 200 to avoid retries from Telegram
+  }
+});
+
+// API Endpoint: Set Telegram Webhook
+app.post('/api/telegram/set-webhook', async (req: Request, res: Response) => {
+  try {
+    const { url } = req.body;
+    if (!url) {
+      res.status(400).json({ success: false, error: 'URL webhook diperlukan' });
+      return;
+    }
+
+    if (!TELEGRAM_BOT_TOKEN) {
+      res.status(400).json({ success: false, error: 'Token Bot Telegram tidak dikonfigurasi.' });
+      return;
+    }
+
+    const webhookUrl = `${url}/api/telegram/webhook`;
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=${webhookUrl}`);
+    const result = await response.json();
+
+    if (result.ok) {
+      res.json({ success: true, message: 'Webhook berhasil diatur!', data: result });
+    } else {
+      res.status(400).json({ success: false, error: result.description || 'Gagal mengatur webhook' });
+    }
+  } catch (err) {
+    console.error('[Telegram API] Error setting webhook:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Gagal mengatur webhook' });
+  }
+});
+
+// API Endpoint: Get Bot Info
+app.get('/api/telegram/bot-info', async (_req: Request, res: Response) => {
+  try {
+    if (!TELEGRAM_BOT_TOKEN) {
+      res.status(400).json({ success: false, error: 'Token Bot Telegram tidak dikonfigurasi.' });
+      return;
+    }
+
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe`);
+    const result = await response.json();
+
+    if (result.ok) {
+      res.json({ success: true, data: result.result });
+    } else {
+      res.status(400).json({ success: false, error: result.description || 'Gagal mengambil info bot' });
+    }
+  } catch (err) {
+    console.error('[Telegram API] Error getting bot info:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Gagal mengambil info bot' });
+  }
+});
+
 // API Endpoint: Send Post (Multiple Images) to Telegram Group
 app.post('/api/telegram/send-post', async (req: Request, res: Response) => {
   try {
