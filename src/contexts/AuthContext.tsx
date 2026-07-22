@@ -25,7 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const initAuth = useCallback(async () => {
     const startTime = Date.now();
-    const MIN_SPLASH_DELAY = 2200; // Minimum 2.2 seconds splash display time
+    const MIN_SPLASH_DELAY = 300; // Fast splash feel (0.3 seconds)
 
     const finishLoading = async (newState: Omit<AuthState, 'isLoading'>) => {
       const elapsed = Date.now() - startTime;
@@ -41,26 +41,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Wait for Telegram Script to load completely if not using manual user
     if (!manualUserStr) {
-      await new Promise<void>((resolve) => {
-        const checkStart = Date.now();
-        const interval = setInterval(() => {
-          const wa = typeof window !== 'undefined' && window.Telegram?.WebApp;
-          // Consider WebApp fully loaded if platform or initData is available
-          if (wa && (wa.initData || wa.initDataUnsafe?.user || wa.platform)) {
-            clearInterval(interval);
-            try {
-              wa.ready();
-              wa.expand();
-            } catch (e) {
-              console.error('Error calling Telegram WebApp ready/expand:', e);
+      const immediateWa = typeof window !== 'undefined' && window.Telegram?.WebApp;
+      if (immediateWa && (immediateWa.initData || immediateWa.initDataUnsafe?.user || immediateWa.platform)) {
+        try {
+          immediateWa.ready();
+          immediateWa.expand();
+        } catch (e) {
+          console.error('Error calling Telegram WebApp ready/expand:', e);
+        }
+      } else {
+        await new Promise<void>((resolve) => {
+          const checkStart = Date.now();
+          const interval = setInterval(() => {
+            const wa = typeof window !== 'undefined' && window.Telegram?.WebApp;
+            // Consider WebApp fully loaded if platform or initData is available
+            if (wa && (wa.initData || wa.initDataUnsafe?.user || wa.platform)) {
+              clearInterval(interval);
+              try {
+                wa.ready();
+                wa.expand();
+              } catch (e) {
+                console.error('Error calling Telegram WebApp ready/expand:', e);
+              }
+              resolve();
+            } else if (Date.now() - checkStart > 400) {
+              clearInterval(interval);
+              resolve();
             }
-            resolve();
-          } else if (Date.now() - checkStart > 1200) {
-            clearInterval(interval);
-            resolve();
-          }
-        }, 50);
-      });
+          }, 20);
+        });
+      }
     }
 
     const webApp = getTelegramWebApp();
