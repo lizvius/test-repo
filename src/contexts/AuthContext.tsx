@@ -39,9 +39,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Support browser-based simulation testing for AI Studio preview / standard browser
     const simulatedUserStr = localStorage.getItem('azurlize_simulated_user');
+    const manualUserStr = localStorage.getItem('azurlize_user_session');
 
-    // Wait for Telegram Script to load completely if not using simulated user
-    if (!simulatedUserStr) {
+    // Wait for Telegram Script to load completely if not using simulated/manual user
+    if (!simulatedUserStr && !manualUserStr) {
       await new Promise<void>((resolve) => {
         const checkStart = Date.now();
         const interval = setInterval(() => {
@@ -61,6 +62,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const webApp = getTelegramWebApp();
     const inTelegram = isTelegramEnvironment();
 
+    // Check for manual user session
+    if (manualUserStr) {
+      try {
+        const manualUser = JSON.parse(manualUserStr);
+        const telegramId = String(manualUser.id);
+        const profile = await getUserProfile(telegramId);
+
+        if (profile) {
+          await finishLoading({
+            isAuthenticated: true,
+            telegramUser: {
+              id: Number(manualUser.id),
+              first_name: manualUser.first_name || '',
+              last_name: manualUser.last_name || '',
+              username: manualUser.username || '',
+              photo_url: manualUser.photo_url || ''
+            },
+            userProfile: profile,
+            token: 'manual_session_token',
+            initData: `user=${encodeURIComponent(manualUserStr)}`,
+            error: null,
+            isTelegramContext: true
+          });
+          return;
+        } else {
+          localStorage.removeItem('azurlize_user_session');
+        }
+      } catch (err) {
+        console.error('[Manual Session] Failed to load profile:', err);
+        localStorage.removeItem('azurlize_user_session');
+      }
+    }
 
     if (!inTelegram && simulatedUserStr) {
       try {
@@ -191,6 +224,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('azurlize_simulated_user');
+    localStorage.removeItem('azurlize_user_session');
+    localStorage.removeItem('azurlize_manual_mode');
     setState({
       isAuthenticated: false,
       isLoading: false,
