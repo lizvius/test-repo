@@ -58,6 +58,15 @@ export const OwnerPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: window.location.origin })
       });
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        setWebhookStatus('❌ Gagal: Respon server bukan JSON. Pastikan backend berjalan dengan benar.');
+        return;
+      }
+
       const result = await response.json();
       if (result.success) {
         setWebhookStatus('✅ Webhook Bot berhasil diaktifkan!');

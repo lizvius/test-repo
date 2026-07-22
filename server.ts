@@ -262,8 +262,9 @@ app.post('/api/telegram/set-webhook', async (req: Request, res: Response) => {
       return;
     }
 
-    const webhookUrl = `${url}/api/telegram/webhook`;
-    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=${webhookUrl}`);
+    const cleanUrl = url.replace(/\/$/, '');
+    const webhookUrl = `${cleanUrl}/api/telegram/webhook`;
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
     const result = await response.json();
 
     if (result.ok) {
