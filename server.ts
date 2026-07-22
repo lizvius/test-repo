@@ -358,21 +358,30 @@ app.post('/api/telegram/send-post', async (req: Request, res: Response) => {
     const endNumber = (startNumber || 1) + (links ? links.length : 0) - 1;
     const rangeStr = `${startNumber}-${endNumber}`;
     
-    const linkList = links && Array.isArray(links) 
+    const header = `${dateStr}\n\n${rangeStr}\n\n`;
+    const footer = `\n\n👤 <b>Recruiter:</b> ${recTag}`;
+    
+    // Telegram limit is 1024. Let's aim for 1000 for safety.
+    const maxCaptionLen = 1000;
+    const availableLen = maxCaptionLen - header.length - footer.length;
+    
+    let linkList = links && Array.isArray(links) 
       ? links.map((l: string, i: number) => `${startNumber + i}. ${l}`).join('\n')
       : '';
 
-    const recTag = recruiterUsername ? `@${recruiterUsername.replace(/^@/, '')}` : recruiterName;
-    
-    const fullCaption = `
-${dateStr}
+    if (linkList.length > availableLen) {
+      // Truncate link list and add notice
+      const notice = '\n... (beberapa link dipotong karena terlalu panjang)';
+      linkList = linkList.substring(0, availableLen - notice.length);
+      // Try to cut at the last newline to be clean
+      const lastNewline = linkList.lastIndexOf('\n');
+      if (lastNewline > 0) {
+        linkList = linkList.substring(0, lastNewline);
+      }
+      linkList += notice;
+    }
 
-${rangeStr}
-
-${linkList}
-
-👤 <b>Recruiter:</b> ${recTag}
-`.trim();
+    const fullCaption = `${header}${linkList}${footer}`.trim();
 
     const formData = new FormData();
     formData.append('chat_id', targetGroup);
