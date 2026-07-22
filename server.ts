@@ -161,14 +161,33 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, {
+      setHeaders: (res, filePath) => {
+        const ext = path.extname(filePath).toLowerCase();
+        if (ext === '.js') {
+          res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+        } else if (ext === '.css') {
+          res.setHeader('Content-Type', 'text/css; charset=utf-8');
+        } else if (ext === '.json') {
+          res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        } else if (ext === '.png') {
+          res.setHeader('Content-Type', 'image/png');
+        } else if (ext === '.jpg' || ext === '.jpeg') {
+          res.setHeader('Content-Type', 'image/jpeg');
+        } else if (ext === '.svg') {
+          res.setHeader('Content-Type', 'image/svg+xml');
+        } else if (ext === '.ico') {
+          res.setHeader('Content-Type', 'image/x-icon');
+        }
+      }
+    }));
     app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[AzurLizeTeam Server] Running on http://0.0.0.0:${PORT}`);
+    console.log(`[AzurLizeTeam Server] Running on http://0.0.0.0:${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
   });
 }
 
