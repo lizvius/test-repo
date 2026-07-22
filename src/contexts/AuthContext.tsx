@@ -7,6 +7,7 @@ import { getUserProfile } from '../firebase/services/userService';
 interface AuthContextType extends AuthState {
   refreshProfile: () => Promise<UserProfile | null>;
   logout: () => void;
+  continueLogin: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -259,6 +260,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, [initAuth]);
 
+  useEffect(() => {
+    if (state.userProfile && state.telegramUser) {
+      localStorage.setItem('azurlize_user_registered', 'true');
+      localStorage.setItem('azurlize_last_telegram_id', String(state.telegramUser.id));
+      localStorage.setItem('azurlize_last_telegram_user', JSON.stringify(state.telegramUser));
+      localStorage.setItem('azurlize_last_profile', JSON.stringify(state.userProfile));
+      if (state.token) {
+        localStorage.setItem('azurlize_last_token', state.token);
+      }
+    }
+  }, [state.userProfile, state.telegramUser, state.token]);
+
   const refreshProfile = async (): Promise<UserProfile | null> => {
     if (!state.telegramUser) return null;
     try {
@@ -298,12 +311,121 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   };
 
+  const continueLogin = async () => {
+    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    try {
+      // 1. Try to read Telegram WebApp first if available in window environment
+      const webApp = getTelegramWebApp();
+      const inTelegram = isTelegramEnvironment();
+      if (inTelegram && webApp) {
+        const initData = webApp.initData;
+        const tgUser = webApp.initDataUnsafe?.user;
+        if (tgUser) {
+          const apiResult = await withTimeout(verifyTelegramInitDataApi(initData), 1500, { success: false, error: 'Timeout' });
+          if (apiResult.success && apiResult.data) {
+            const freshTgUser = apiResult.data.telegramUser;
+            const freshToken = apiResult.data.token;
+            const telegramId = String(freshTgUser.id);
+            const freshProfile = await withTimeout(getUserProfile(telegramId), 1200, null);
+            
+            if (freshProfile) {
+              localStorage.setItem(`azurlize_profile_${telegramId}`, JSON.stringify(freshProfile));
+              localStorage.setItem(`azurlize_token_${telegramId}`, freshToken);
+              localStorage.setItem('azurlize_session_token', freshToken);
+              localStorage.setItem('azurlize_user_registered', 'true');
+              
+              setState({
+                isAuthenticated: true,
+                isLoading: false,
+                telegramUser: {
+                  id: freshTgUser.id,
+                  first_name: freshTgUser.first_name || '',
+                  last_name: freshTgUser.last_name || '',
+                  username: freshTgUser.username || '',
+                  photo_url: freshTgUser.photo_url || ''
+                },
+                userProfile: freshProfile,
+                token: freshToken,
+                initData,
+                error: null,
+                isTelegramContext: true
+              });
+              return;
+            }
+          }
+        }
+      }
+
+      // 2. Fallback: If not in Telegram but we have saved last registered user info, restore it
+      const lastTgId = localStorage.getItem('azurlize_last_telegram_id');
+      const lastTgUserStr = localStorage.getItem('azurlize_last_telegram_user');
+      const lastToken = localStorage.getItem('azurlize_last_token');
+      const lastProfileStr = localStorage.getItem('azurlize_last_profile');
+
+      if (lastTgId && lastToken && lastProfileStr) {
+        let lastProfile = null;
+        try {
+          lastProfile = JSON.parse(lastProfileStr);
+        } catch {
+          // ignore
+        }
+        
+        let lastTgUser = null;
+        if (lastTgUserStr) {
+          try {
+            lastTgUser = JSON.parse(lastTgUserStr);
+          } catch {
+            // ignore
+          }
+        }
+
+        if (lastProfile) {
+          localStorage.setItem('azurlize_session_token', lastToken);
+          localStorage.setItem(`azurlize_token_${lastTgId}`, lastToken);
+          localStorage.setItem(`azurlize_profile_${lastTgId}`, JSON.stringify(lastProfile));
+          
+          setState({
+            isAuthenticated: true,
+            isLoading: false,
+            telegramUser: lastTgUser || {
+              id: Number(lastTgId),
+              first_name: lastProfile.firstName || '',
+              last_name: lastProfile.lastName || '',
+              username: lastProfile.username || '',
+              photo_url: lastProfile.photoUrl || ''
+            },
+            userProfile: lastProfile,
+            token: lastToken,
+            initData: '',
+            error: null,
+            isTelegramContext: false
+          });
+          return;
+        }
+      }
+
+      setState((prev) => ({ 
+        ...prev, 
+        isLoading: false, 
+        error: 'Sesi login tidak dapat dipulihkan secara otomatis. Silakan buka kembali dari bot Telegram.' 
+      }));
+    } catch (err) {
+      console.error('Error in continueLogin:', err);
+      setState((prev) => ({ 
+        ...prev, 
+        isLoading: false, 
+        error: 'Gagal melanjutkan login otomatis. Silakan coba lagi.' 
+      }));
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
         ...state,
         refreshProfile,
-        logout
+        logout,
+        continueLogin
       }}
     >
       {children}

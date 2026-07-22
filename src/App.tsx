@@ -15,6 +15,7 @@ import { PengumumanPage } from './pages/PengumumanPage';
 import { ProfilPage } from './pages/ProfilPage';
 import { AdminPage } from './pages/AdminPage';
 import { OwnerPage } from './pages/OwnerPage';
+import { ContinueLoginPage } from './pages/ContinueLoginPage';
 import { MainLayout } from './layouts/MainLayout';
 import { TabType } from './components/navigation/BottomNav';
 import { GlassCard } from './components/common/GlassCard';
@@ -23,6 +24,7 @@ import { ShieldAlert, LogOut } from 'lucide-react';
 const AppContent: React.FC = () => {
   const { isLoading, isAuthenticated, isTelegramContext, userProfile, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabType>('beranda');
+  const [forceShowInstructions, setForceShowInstructions] = useState(false);
 
   useEffect(() => {
     initTelegramApp();
@@ -34,6 +36,10 @@ const AppContent: React.FC = () => {
 
   // If opened in browser without Telegram WebApp context
   if (!isTelegramContext && !isAuthenticated) {
+    const isRegistered = localStorage.getItem('azurlize_user_registered') === 'true';
+    if (isRegistered && !forceShowInstructions) {
+      return <ContinueLoginPage onShowInstructions={() => setForceShowInstructions(true)} />;
+    }
     return <BrowserNoticePage />;
   }
 
