@@ -31,9 +31,9 @@ export const Header: React.FC<HeaderProps> = ({ title, showUserBadge = true }) =
         )}
 
         {showUserBadge && (userProfile || telegramUser) && (
-          <div className="flex items-center gap-2.5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-1.5 pl-3 pr-2 rounded-2xl border border-slate-200 dark:border-sky-500/20 shadow-lg shadow-sky-500/5">
+          <div className="flex items-center gap-2.5 bg-slate-900/90 backdrop-blur-md p-1.5 pl-3 pr-2 rounded-2xl border border-sky-500/20 shadow-lg shadow-sky-500/5">
             <div className="flex flex-col text-right">
-              <span className="text-xs font-black text-slate-800 dark:text-white max-w-[95px] truncate leading-tight tracking-tight">
+              <span className="text-xs font-black text-white max-w-[95px] truncate leading-tight tracking-tight">
                 {userProfile?.firstName || telegramUser?.first_name || 'User'}
               </span>
               {userProfile?.role && (

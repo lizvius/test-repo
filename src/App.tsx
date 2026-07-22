@@ -68,11 +68,11 @@ const AppContent: React.FC = () => {
             <ShieldAlert className="w-8 h-8" />
           </div>
 
-          <h2 className="text-xl font-extrabold text-slate-800 dark:text-white">
+          <h2 className="text-xl font-extrabold text-white">
             Akun Anda {userProfile.status === 'Rejected' ? 'Ditolak' : 'Ditangguhkan (Suspended)'}
           </h2>
 
-          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+          <p className="text-xs text-slate-300 leading-relaxed">
             {userProfile.status === 'Rejected'
               ? 'Maaf, pendaftaran Anda sebagai tim rekrutmen AzurLizeTeam tidak dapat disetujui oleh Admin.'
               : 'Akun Anda saat ini ditangguhkan oleh Admin. Silakan hubungi Owner untuk bantuan lebih lanjut.'}
@@ -80,7 +80,7 @@ const AppContent: React.FC = () => {
 
           <button
             onClick={logout}
-            className="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-slate-300 rounded-2xl border border-slate-200 dark:border-slate-800 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
+            className="w-full py-3 px-4 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-2xl border border-slate-800 font-semibold text-xs flex items-center justify-center gap-2 cursor-pointer transition-colors"
           >
             <LogOut className="w-4 h-4" /> Keluar Sesi
           </button>
