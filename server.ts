@@ -358,6 +358,7 @@ app.post('/api/telegram/send-post', async (req: Request, res: Response) => {
     const endNumber = (startNumber || 1) + (links ? links.length : 0) - 1;
     const rangeStr = `${startNumber}-${endNumber}`;
     
+    const recTag = recruiterUsername ? `@${recruiterUsername.replace(/^@/, '')}` : recruiterName;
     const header = `${dateStr}\n\n${rangeStr}\n\n`;
     const footer = `\n\n👤 <b>Recruiter:</b> ${recTag}`;
     
