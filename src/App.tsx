@@ -9,6 +9,7 @@ import { BrowserNoticePage } from './pages/BrowserNoticePage';
 import { LoginPage } from './pages/LoginPage';
 import { PendingPage } from './pages/PendingPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { DataHarianPage } from './pages/DataHarianPage';
 import { LaporanHarianPage } from './pages/LaporanHarianPage';
 import { RiwayatLaporanPage } from './pages/RiwayatLaporanPage';
 import { PengumumanPage } from './pages/PengumumanPage';
@@ -94,6 +95,8 @@ const AppContent: React.FC = () => {
     switch (activeTab) {
       case 'beranda':
         return <DashboardPage setActiveTab={setActiveTab} />;
+      case 'data_harian':
+        return <DataHarianPage />;
       case 'laporan':
         return <LaporanHarianPage />;
       case 'riwayat':

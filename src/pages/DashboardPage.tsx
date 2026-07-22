@@ -10,6 +10,7 @@ import { getAnnouncements } from '../firebase/services/announcementService';
 import { getSystemSettings } from '../firebase/services/settingService';
 import { 
   ClipboardPen, 
+  CalendarClock,
   Clock3, 
   BellRing, 
   BarChart2, 
@@ -57,8 +58,17 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
 
   const quickMenus = [
     {
+      id: 'data_harian' as TabType,
+      title: 'Data Harian',
+      desc: 'Timer 24 jam & data baru',
+      icon: CalendarClock,
+      color: 'from-emerald-400 via-teal-500 to-sky-600',
+      glow: 'shadow-emerald-500/20 hover:shadow-emerald-500/40',
+      badge: '24H Timer'
+    },
+    {
       id: 'laporan' as TabType,
-      title: 'Laporan Harian',
+      title: 'Form Laporan',
       desc: 'Isi & kirim laporan',
       icon: ClipboardPen,
       color: 'from-sky-400 via-blue-500 to-indigo-600',

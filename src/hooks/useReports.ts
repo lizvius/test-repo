@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { DailyReport, DailyReportFormData } from '../types';
 import { createDailyReport, getReportsByTelegramId, getAllReports } from '../firebase/services/reportService';
+import { syncReportToSheetsApi } from '../services/api';
 import { useAuth } from './useAuth';
 
 export function useReports() {
@@ -47,6 +48,12 @@ export function useReports() {
         formData
       );
       setReports((prev) => [newReport, ...prev]);
+
+      // Sync report to Google Sheets automatically
+      syncReportToSheetsApi(newReport).catch((err) => {
+        console.warn('[Google Sheets] Auto sync report failed:', err);
+      });
+
       return newReport;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Gagal mengirim laporan harian.';

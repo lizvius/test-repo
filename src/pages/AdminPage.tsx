@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GlassCard } from '../components/common/GlassCard';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
 import { useRecruiters } from '../hooks/useRecruiters';
 import { UserProfile, UserStatus } from '../types';
-import { Shield, Search, Filter, CheckCircle2, XCircle, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
+import { getGoogleSheetInfoApi } from '../services/api';
+import { Shield, Search, Filter, CheckCircle2, XCircle, AlertTriangle, RefreshCw, ChevronLeft, ChevronRight, Eye, FileSpreadsheet, ExternalLink } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
   const { users, isLoading, error, refetch, changeStatus } = useRecruiters();
@@ -12,6 +13,15 @@ export const AdminPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [sheetUrl, setSheetUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    getGoogleSheetInfoApi().then((res) => {
+      if (res.success && res.data?.url) {
+        setSheetUrl(res.data.url);
+      }
+    }).catch(console.warn);
+  }, []);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,13 +75,28 @@ export const AdminPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={refetch}
-          disabled={isLoading}
-          className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white cursor-pointer"
-        >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-        </button>
+        <div className="flex items-center gap-2">
+          {sheetUrl && (
+            <a
+              href={sheetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-2 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/25 text-xs font-bold flex items-center gap-1.5 transition-all"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+              <span className="hidden sm:inline">Google Sheets ACC</span>
+              <ExternalLink className="w-3 h-3 opacity-70" />
+            </a>
+          )}
+
+          <button
+            onClick={refetch}
+            disabled={isLoading}
+            className="p-2.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </div>
 
       {error && (

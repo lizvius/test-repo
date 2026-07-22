@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { UserProfile, UserRole, UserStatus } from '../types';
 import { getAllUsers, updateUserStatus, updateUserRole } from '../firebase/services/userService';
+import { syncUserToSheetsApi } from '../services/api';
 import { useAuth } from './useAuth';
 
 export function useRecruiters() {
@@ -34,9 +35,22 @@ export function useRecruiters() {
       const approved = status === 'Active';
       const approvedBy = `${userProfile.firstName} (${userProfile.role})`;
       await updateUserStatus(telegramId, status, approved, approvedBy);
+
+      const targetUser = users.find((u) => u.telegramId === telegramId);
+      const updatedUser: UserProfile | undefined = targetUser
+        ? { ...targetUser, status, approved, approvedBy, approvedAt: new Date().toISOString() }
+        : undefined;
+
       setUsers((prev) =>
         prev.map((u) => (u.telegramId === telegramId ? { ...u, status, approved, approvedBy } : u))
       );
+
+      // Auto sync to Google Sheets if ACC'd
+      if (status === 'Active' && updatedUser) {
+        syncUserToSheetsApi(updatedUser).catch((sheetsErr) => {
+          console.warn('[Google Sheets] Auto sync user failed:', sheetsErr);
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal memperbarui status user.');
       throw err;

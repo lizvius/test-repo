@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
+import { getOrCreateSpreadsheet, appendApprovedUserToSheet, appendReportToSheet } from './src/server/googleSheets';
 
 dotenv.config();
 
@@ -149,6 +150,51 @@ app.post('/api/auth/session-user', authenticateJWT, (req: Request & { user?: unk
       sessionUser: req.user
     }
   });
+});
+
+// API Endpoint: Get Google Spreadsheet Link
+app.get('/api/sheets/info', async (_req: Request, res: Response) => {
+  try {
+    const info = await getOrCreateSpreadsheet();
+    res.json({ success: true, data: info });
+  } catch (err) {
+    console.error('[Sheets API] Error getting sheet info:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Gagal mengakses Google Sheets' });
+  }
+});
+
+// API Endpoint: Sync Approved User to Google Sheets
+app.post('/api/sheets/sync-user', async (req: Request, res: Response) => {
+  try {
+    const { user } = req.body;
+    if (!user || !user.telegramId) {
+      res.status(400).json({ success: false, error: 'Data user tidak lengkap' });
+      return;
+    }
+
+    const result = await appendApprovedUserToSheet(user);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    console.error('[Sheets API] Error syncing user to Google Sheets:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Gagal mencatat data ke Google Sheets' });
+  }
+});
+
+// API Endpoint: Sync Daily Report to Google Sheets
+app.post('/api/sheets/sync-report', async (req: Request, res: Response) => {
+  try {
+    const { report } = req.body;
+    if (!report || !report.telegramId) {
+      res.status(400).json({ success: false, error: 'Data laporan tidak lengkap' });
+      return;
+    }
+
+    const result = await appendReportToSheet(report);
+    res.json({ success: true, data: result });
+  } catch (err) {
+    console.error('[Sheets API] Error syncing report to Google Sheets:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Gagal mencatat laporan ke Google Sheets' });
+  }
 });
 
 // Start Express Server and mount Vite Middleware
