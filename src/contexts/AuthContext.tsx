@@ -140,6 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const telegramId = String(freshTgUser.id);
 
           localStorage.setItem(`azurlize_token_${freshTgUser.id}`, freshToken);
+          localStorage.setItem('azurlize_session_token', freshToken);
 
           const freshProfile = await withTimeout(getUserProfile(telegramId), 800, cachedProfile);
           if (freshProfile) {
@@ -187,6 +188,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.setItem(`azurlize_profile_${freshTgUser.id}`, JSON.stringify(profile));
         }
         localStorage.setItem(`azurlize_token_${freshTgUser.id}`, token);
+        localStorage.setItem('azurlize_session_token', token);
 
         await finishLoading({
           isAuthenticated: profile !== null,
@@ -283,6 +285,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem(`azurlize_profile_${telegramId}`);
       localStorage.removeItem(`azurlize_token_${telegramId}`);
     }
+    localStorage.removeItem('azurlize_session_token');
     setState({
       isAuthenticated: false,
       isLoading: false,

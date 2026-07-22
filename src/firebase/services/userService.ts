@@ -1,60 +1,72 @@
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-  getDocFromServer
-} from 'firebase/firestore';
-import { db } from '../config';
-import { handleFirestoreError, OperationType } from '../error';
 import { UserProfile, UserRole, UserStatus } from '../../types';
 
-const COLLECTION_NAME = 'users';
+// Helper to get authorization headers with JWT token
+function getAuthHeaders(): HeadersInit {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  const sessionToken = localStorage.getItem('azurlize_session_token');
+  if (sessionToken) {
+    headers['Authorization'] = `Bearer ${sessionToken}`;
+  } else {
+    // Scan localStorage keys for any user token as a fallback
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('azurlize_token_')) {
+        const val = localStorage.getItem(key);
+        if (val) {
+          headers['Authorization'] = `Bearer ${val}`;
+          break;
+        }
+      }
+    }
+  }
+  return headers;
+}
 
 export async function testFirestoreConnection(): Promise<boolean> {
-  try {
-    await getDocFromServer(doc(db, 'settings', 'connection_test'));
-    return true;
-  } catch {
-    return false;
-  }
+  return true;
 }
 
 export async function getUserProfile(telegramId: string): Promise<UserProfile | null> {
-  const userRef = doc(db, COLLECTION_NAME, telegramId);
   try {
-    const docSnap = await getDoc(userRef);
-    if (docSnap.exists()) {
-      return docSnap.data() as UserProfile;
+    const res = await fetch(`/api/users/profile?telegramId=${encodeURIComponent(telegramId)}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP Error ${res.status}`);
     }
-    return null;
+    const result = await res.json();
+    if (!result.success) {
+      throw new Error(result.error || 'Gagal mengambil data user.');
+    }
+    return result.data as UserProfile | null;
   } catch (error) {
-    handleFirestoreError(error, OperationType.GET, `${COLLECTION_NAME}/${telegramId}`);
+    console.error('[userService] getUserProfile failed:', error);
+    throw error;
   }
 }
 
 export async function createUserProfile(profile: Omit<UserProfile, 'createdAt' | 'updatedAt'>): Promise<UserProfile> {
-  const now = new Date().toISOString();
-  const fullProfile: UserProfile = {
-    ...profile,
-    role: profile.role || 'Recruiter',
-    status: profile.status || 'Pending',
-    approved: profile.approved ?? false,
-    createdAt: now,
-    updatedAt: now
-  };
-
-  const userRef = doc(db, COLLECTION_NAME, profile.telegramId);
   try {
-    await setDoc(userRef, fullProfile);
-    return fullProfile;
+    const res = await fetch('/api/users/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile })
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP Error ${res.status}`);
+    }
+    const result = await res.json();
+    if (!result.success) {
+      throw new Error(result.error || 'Gagal menyimpan pendaftaran.');
+    }
+    return result.data as UserProfile;
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, `${COLLECTION_NAME}/${profile.telegramId}`);
+    console.error('[userService] createUserProfile failed:', error);
+    throw error;
   }
 }
 
@@ -64,19 +76,22 @@ export async function updateUserStatus(
   approved: boolean,
   approvedBy: string
 ): Promise<void> {
-  const userRef = doc(db, COLLECTION_NAME, telegramId);
-  const now = new Date().toISOString();
-
   try {
-    await updateDoc(userRef, {
-      status,
-      approved,
-      approvedBy,
-      approvedAt: now,
-      updatedAt: now
+    const res = await fetch('/api/users/update-status', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ telegramId, status, approved, approvedBy })
     });
+    if (!res.ok) {
+      throw new Error(`HTTP Error ${res.status}`);
+    }
+    const result = await res.json();
+    if (!result.success) {
+      throw new Error(result.error || 'Gagal memperbarui status user.');
+    }
   } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, `${COLLECTION_NAME}/${telegramId}`);
+    console.error('[userService] updateUserStatus failed:', error);
+    throw error;
   }
 }
 
@@ -85,39 +100,51 @@ export async function updateUserRole(
   role: UserRole,
   updatedBy: string
 ): Promise<void> {
-  const userRef = doc(db, COLLECTION_NAME, telegramId);
-  const now = new Date().toISOString();
-
   try {
-    await updateDoc(userRef, {
-      role,
-      updatedBy,
-      updatedAt: now
+    const res = await fetch('/api/users/update-role', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ telegramId, role, updatedBy })
     });
+    if (!res.ok) {
+      throw new Error(`HTTP Error ${res.status}`);
+    }
+    const result = await res.json();
+    if (!result.success) {
+      throw new Error(result.error || 'Gagal memperbarui role user.');
+    }
   } catch (error) {
-    handleFirestoreError(error, OperationType.UPDATE, `${COLLECTION_NAME}/${telegramId}`);
+    console.error('[userService] updateUserRole failed:', error);
+    throw error;
   }
 }
 
 export async function getAllUsers(): Promise<UserProfile[]> {
   try {
-    const usersRef = collection(db, COLLECTION_NAME);
-    const q = query(usersRef, orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((docSnap) => docSnap.data() as UserProfile);
+    const res = await fetch('/api/users/all', {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!res.ok) {
+      throw new Error(`HTTP Error ${res.status}`);
+    }
+    const result = await res.json();
+    if (!result.success) {
+      throw new Error(result.error || 'Gagal mengambil seluruh data user.');
+    }
+    return result.data as UserProfile[];
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
+    console.error('[userService] getAllUsers failed:', error);
+    throw error;
   }
 }
 
 export async function getUsersByRole(role: UserRole): Promise<UserProfile[]> {
   try {
-    const usersRef = collection(db, COLLECTION_NAME);
-    const q = query(usersRef, where('role', '==', role));
-    const snapshot = await getDocs(q);
-    const users = snapshot.docs.map((docSnap) => docSnap.data() as UserProfile);
-    return users.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const users = await getAllUsers();
+    return users.filter(u => u.role === role);
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, COLLECTION_NAME);
+    console.error('[userService] getUsersByRole failed:', error);
+    throw error;
   }
 }

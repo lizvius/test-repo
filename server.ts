@@ -4,11 +4,36 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
+import { initializeApp as initFirebaseApp } from 'firebase/app';
+import { 
+  getFirestore as initGetFirestore, 
+  doc as fDoc, 
+  getDoc as fGetDoc, 
+  setDoc as fSetDoc, 
+  updateDoc as fUpdateDoc, 
+  collection as fCollection, 
+  getDocs as fGetDocs, 
+  query as fQuery, 
+  orderBy as fOrderBy, 
+  where as fWhere 
+} from 'firebase/firestore';
 
 dotenv.config();
 
 const app = express();
 const PORT = 3000;
+
+const firebaseConfig = {
+  apiKey: process.env.VITE_FIREBASE_API_KEY || 'AIzaSy_YOUR_FIREBASE_API_KEY_HERE',
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || 'azurlizeteam-app.firebaseapp.com',
+  projectId: process.env.VITE_FIREBASE_PROJECT_ID || 'azurlizeteam-app',
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || 'azurlizeteam-app.appspot.com',
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '1234567890',
+  appId: process.env.VITE_FIREBASE_APP_ID || '1:1234567890:web:abcdef123456789'
+};
+
+const firebaseApp = initFirebaseApp(firebaseConfig);
+const db = initGetFirestore(firebaseApp);
 
 // TODO: Configure TELEGRAM_BOT_TOKEN in .env for production verification
 const TELEGRAM_BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || '').trim().replace(/^["']|["']$/g, '');
@@ -149,6 +174,122 @@ app.post('/api/auth/session-user', authenticateJWT, (req: Request & { user?: unk
       sessionUser: req.user
     }
   });
+});
+
+// ==========================================
+// FIRESTORE PROXY API ENDPOINTS (FAST & STABLE)
+// ==========================================
+
+// GET user profile
+app.get('/api/users/profile', async (req: Request, res: Response) => {
+  const { telegramId } = req.query;
+  if (!telegramId) {
+    res.status(400).json({ success: false, error: 'telegramId is required' });
+    return;
+  }
+
+  try {
+    const userRef = fDoc(db, 'users', String(telegramId));
+    const docSnap = await fGetDoc(userRef);
+    if (docSnap.exists()) {
+      res.json({ success: true, data: docSnap.data() });
+    } else {
+      res.json({ success: true, data: null });
+    }
+  } catch (err) {
+    console.error('[Backend Firestore] Error getting user profile:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Database error' });
+  }
+});
+
+// CREATE user profile
+app.post('/api/users/create', async (req: Request, res: Response) => {
+  const { profile } = req.body;
+  if (!profile || !profile.telegramId) {
+    res.status(400).json({ success: false, error: 'profile with telegramId is required' });
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const fullProfile = {
+    ...profile,
+    role: profile.role || 'Recruiter',
+    status: profile.status || 'Pending',
+    approved: profile.approved ?? false,
+    createdAt: now,
+    updatedAt: now
+  };
+
+  try {
+    const userRef = fDoc(db, 'users', String(profile.telegramId));
+    await fSetDoc(userRef, fullProfile);
+    res.json({ success: true, data: fullProfile });
+  } catch (err) {
+    console.error('[Backend Firestore] Error creating user profile:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Database error' });
+  }
+});
+
+// UPDATE user status
+app.post('/api/users/update-status', authenticateJWT, async (req: Request, res: Response) => {
+  const { telegramId, status, approved, approvedBy } = req.body;
+  if (!telegramId || !status) {
+    res.status(400).json({ success: false, error: 'telegramId and status are required' });
+    return;
+  }
+
+  const now = new Date().toISOString();
+  try {
+    const userRef = fDoc(db, 'users', String(telegramId));
+    await fUpdateDoc(userRef, {
+      status,
+      approved: Boolean(approved),
+      approvedBy: approvedBy || 'Admin',
+      approvedAt: now,
+      updatedAt: now
+    });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Backend Firestore] Error updating status:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Database error' });
+  }
+});
+
+// UPDATE user role
+app.post('/api/users/update-role', authenticateJWT, async (req: Request, res: Response) => {
+  const { telegramId, role, updatedBy } = req.body;
+  if (!telegramId || !role) {
+    res.status(400).json({ success: false, error: 'telegramId and role are required' });
+    return;
+  }
+
+  const now = new Date().toISOString();
+  try {
+    const userRef = fDoc(db, 'users', String(telegramId));
+    await fUpdateDoc(userRef, {
+      role,
+      updatedBy: updatedBy || 'Owner',
+      updatedAt: now
+    });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Backend Firestore] Error updating role:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Database error' });
+  }
+});
+
+// GET all users
+app.get('/api/users/all', authenticateJWT, async (req: Request, res: Response) => {
+  try {
+    const usersRef = fCollection(db, 'users');
+    const q = fQuery(usersRef, fOrderBy('createdAt', 'desc'));
+    const snapshot = await fGetDocs(q);
+    const users = snapshot.docs.map((docSnap) => docSnap.data());
+    res.json({ success: true, data: users });
+  } catch (err) {
+    console.error('[Backend Firestore] Error getting all users:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Database error' });
+  }
 });
 
 // Start Express Server and mount Vite Middleware
