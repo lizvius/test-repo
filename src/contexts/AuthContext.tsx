@@ -99,58 +99,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    if (!inTelegram || !webApp) {
-      await finishLoading({
-        isAuthenticated: false,
-        telegramUser: null,
-        userProfile: null,
-        token: null,
-        initData: '',
-        error: null,
-        isTelegramContext: false
-      });
-      return;
-    }
-
-    const initData = webApp.initData;
-
     try {
-      // Verify initData with Express Backend API
-      const apiResult = await verifyTelegramInitDataApi(initData);
-
-      if (!apiResult.success || !apiResult.data) {
-        throw new Error(apiResult.error || 'Gagal memverifikasi akun Telegram.');
+      if (!inTelegram || !webApp) {
+        await finishLoading({
+          isAuthenticated: false,
+          telegramUser: null,
+          userProfile: null,
+          token: null,
+          initData: '',
+          error: null,
+          isTelegramContext: false
+        });
+        return;
       }
 
-      const tgUser = apiResult.data.telegramUser;
-      const telegramId = String(tgUser.id);
-      const token = apiResult.data.token;
+      const initData = webApp.initData;
 
-      // Fetch Profile from Firebase Firestore
-      const profile = await getUserProfile(telegramId);
+      try {
+        // Verify initData with Express Backend API
+        const apiResult = await verifyTelegramInitDataApi(initData);
 
-      await finishLoading({
-        isAuthenticated: true,
-        telegramUser: {
-          id: tgUser.id,
-          first_name: tgUser.first_name,
-          last_name: tgUser.last_name,
-          username: tgUser.username,
-          photo_url: tgUser.photo_url
-        },
-        userProfile: profile,
-        token,
-        initData,
-        error: null,
-        isTelegramContext: true
-      });
-    } catch (err) {
-      // Fallback: If backend verification fails but we are inside Telegram, retrieve the user info client-side directly
-      const tgUser = webApp.initDataUnsafe?.user;
-      if (tgUser) {
-        console.warn('[AuthContext] Backend verification failed, using client-side WebApp user object fallback:', err);
+        if (!apiResult.success || !apiResult.data) {
+          throw new Error(apiResult.error || 'Gagal memverifikasi akun Telegram.');
+        }
+
+        const tgUser = apiResult.data.telegramUser;
         const telegramId = String(tgUser.id);
-        const profile = await getUserProfile(telegramId);
+        const token = apiResult.data.token;
+
+        // Fetch Profile from Firebase Firestore (safely catch errors so permission denied doesn't block the screen)
+        let profile = null;
+        try {
+          profile = await getUserProfile(telegramId);
+        } catch (dbErr) {
+          console.warn('[AuthContext] Firestore profile fetch failed:', dbErr);
+        }
 
         await finishLoading({
           isAuthenticated: profile !== null,
@@ -162,22 +145,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             photo_url: tgUser.photo_url || ''
           },
           userProfile: profile,
-          token: 'client_side_fallback_token',
+          token,
           initData,
-          error: null, // Clear error so it doesn't block the screen with a scary error box
+          error: null,
           isTelegramContext: true
         });
-      } else {
-        await finishLoading({
-          isAuthenticated: false,
-          telegramUser: null,
-          userProfile: null,
-          token: null,
-          initData,
-          error: err instanceof Error ? err.message : 'Terjadi kesalahan otentikasi Telegram.',
-          isTelegramContext: true
-        });
+      } catch (err) {
+        // Fallback: If backend verification fails but we are inside Telegram, retrieve the user info client-side directly
+        const tgUser = webApp.initDataUnsafe?.user;
+        if (tgUser) {
+          console.warn('[AuthContext] Backend verification failed, using client-side WebApp user object fallback:', err);
+          const telegramId = String(tgUser.id);
+          
+          let profile = null;
+          try {
+            profile = await getUserProfile(telegramId);
+          } catch (dbErr) {
+            console.warn('[AuthContext] Fallback Firestore profile fetch failed:', dbErr);
+          }
+
+          await finishLoading({
+            isAuthenticated: profile !== null,
+            telegramUser: {
+              id: tgUser.id,
+              first_name: tgUser.first_name || '',
+              last_name: tgUser.last_name || '',
+              username: tgUser.username || '',
+              photo_url: tgUser.photo_url || ''
+            },
+            userProfile: profile,
+            token: 'client_side_fallback_token',
+            initData,
+            error: null, // Clear error so it doesn't block the screen with a scary error box
+            isTelegramContext: true
+          });
+        } else {
+          await finishLoading({
+            isAuthenticated: false,
+            telegramUser: null,
+            userProfile: null,
+            token: null,
+            initData,
+            error: err instanceof Error ? err.message : 'Terjadi kesalahan otentikasi Telegram.',
+            isTelegramContext: true
+          });
+        }
       }
+    } catch (criticalErr) {
+      console.error('[AuthContext] Critical exception in initAuth:', criticalErr);
+      const tgUser = webApp?.initDataUnsafe?.user;
+      await finishLoading({
+        isAuthenticated: false,
+        telegramUser: tgUser ? {
+          id: tgUser.id,
+          first_name: tgUser.first_name || '',
+          last_name: tgUser.last_name || '',
+          username: tgUser.username || '',
+          photo_url: tgUser.photo_url || ''
+        } : null,
+        userProfile: null,
+        token: null,
+        initData: webApp?.initData || '',
+        error: criticalErr instanceof Error ? criticalErr.message : String(criticalErr),
+        isTelegramContext: inTelegram
+      });
     }
   }, []);
 
