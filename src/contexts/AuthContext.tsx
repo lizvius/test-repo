@@ -37,12 +37,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-    // Support browser-based simulation testing for AI Studio preview / standard browser
-    const simulatedUserStr = localStorage.getItem('azurlize_simulated_user');
     const manualUserStr = localStorage.getItem('azurlize_user_session');
 
-    // Wait for Telegram Script to load completely if not using simulated/manual user
-    if (!simulatedUserStr && !manualUserStr) {
+    // Wait for Telegram Script to load completely if not using manual user
+    if (!manualUserStr) {
       await new Promise<void>((resolve) => {
         const checkStart = Date.now();
         const interval = setInterval(() => {
@@ -95,51 +93,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
 
-    if (!inTelegram && simulatedUserStr) {
-      try {
-        const simulatedUser = JSON.parse(simulatedUserStr);
-        const telegramId = String(simulatedUser.id);
-        let profile = await getUserProfile(telegramId);
-
-        const simulatedRole = localStorage.getItem('azurlize_simulated_role');
-        if (!profile && simulatedRole) {
-          const { createUserProfile } = await import('../firebase/services/userService');
-          profile = await createUserProfile({
-            telegramId,
-            firstName: simulatedUser.first_name,
-            lastName: simulatedUser.last_name || '',
-            username: simulatedUser.username || '',
-            email: `${simulatedUser.username || 'user'}@azurlizeteam.com`,
-            whatsapp: '081234567890',
-            akun9Kucing: '123456',
-            role: simulatedRole as 'Owner' | 'Admin' | 'Recruiter',
-            status: 'Active',
-            approved: true,
-            photoUrl: simulatedUser.photo_url || ''
-          });
-        }
-
-        await finishLoading({
-          isAuthenticated: true,
-          telegramUser: {
-            id: simulatedUser.id,
-            first_name: simulatedUser.first_name,
-            last_name: simulatedUser.last_name || '',
-            username: simulatedUser.username || 'recruiter_simulasi',
-            photo_url: simulatedUser.photo_url || ''
-          },
-          userProfile: profile,
-          token: 'simulated_jwt_token_for_preview',
-          initData: `query_id=simulated_query_id&user=${encodeURIComponent(simulatedUserStr)}`,
-          error: null,
-          isTelegramContext: true
-        });
-        return;
-      } catch (err) {
-        console.error('[Preview Simulation] Failed to load mock profile:', err);
-      }
-    }
-
     if (!inTelegram || !webApp) {
       await finishLoading({
         isAuthenticated: false,
@@ -153,14 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    let initData = webApp.initData;
-
-    // Fallback: Construct synthetic initData if standard initData is empty but initDataUnsafe.user is populated
-    if ((!initData || initData.trim() === '') && webApp.initDataUnsafe?.user) {
-      const userObj = webApp.initDataUnsafe.user;
-      const userParam = encodeURIComponent(JSON.stringify(userObj));
-      initData = `user=${userParam}&hash=synthetic_hash_fallback_development`;
-    }
+    const initData = webApp.initData;
 
     try {
       // Verify initData with Express Backend API
@@ -223,7 +169,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('azurlize_simulated_user');
     localStorage.removeItem('azurlize_user_session');
     localStorage.removeItem('azurlize_manual_mode');
     setState({
