@@ -104,6 +104,7 @@ export const PostinganPage: React.FC = () => {
   const [links, setLinks] = useState<SocialLink[]>([]);
   const [bulkText, setBulkText] = useState('');
   const [isReviewingLinks, setIsReviewingLinks] = useState(false);
+  const [isConfirmed, setIsConfirmed] = useState(false);
   const [startNumber, setStartNumber] = useState<number>(1);
   const [images, setImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -397,6 +398,7 @@ export const PostinganPage: React.FC = () => {
         setLinks([]);
         setBulkText('');
         setIsReviewingLinks(false);
+        setIsConfirmed(false);
         setImages([]);
         setStartNumber(prev => prev + 10);
         triggerHaptic('notification', 'success');
@@ -572,11 +574,13 @@ export const PostinganPage: React.FC = () => {
                         variant="secondary"
                         disabled={!bulkText.trim()}
                           onClick={() => {
-                            const detected = bulkText.match(/https?:\/\/[^\s]+/g);
-                            if (!detected || detected.length === 0) {
+                            const rawLinks = bulkText.match(/https?:\/\/[^\s]+/g);
+                            if (!rawLinks || rawLinks.length === 0) {
                               setStatus({ type: 'error', message: 'Tidak ada link valid yang ditemukan.' });
                               return;
                             }
+
+                            const detected = rawLinks.map(url => url.replace(/[,\.\)]+$/, ''));
 
                             if (detected.length > 10) {
                               setStatus({ type: 'error', message: 'Maksimal 10 link diperbolehkan. Mohon kurangi jumlah link.' });
@@ -584,11 +588,6 @@ export const PostinganPage: React.FC = () => {
                             }
 
                             // Try to detect start number from first numbered link if present (e.g., "41. http...")
-                            const firstMatch = bulkText.match(/(\d+)\s*[\.\)-]\s*https?:\/\//);
-                            if (firstMatch && firstMatch[1]) {
-                              setStartNumber(parseInt(firstMatch[1]));
-                            }
-
                             const formattedLinks: SocialLink[] = detected.map(url => {
                             let platform: SocialPlatform = 'Facebook';
                             const lowUrl = url.toLowerCase();
@@ -615,61 +614,88 @@ export const PostinganPage: React.FC = () => {
                   ) : (
                     <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                       <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-                        {links.map((link, idx) => (
-                          <div 
-                            key={idx} 
-                            className="flex flex-col gap-2 p-3 rounded-2xl bg-slate-900/40 border border-slate-700/50"
-                          >
-                            <div className="flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <span className="text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-lg border shrink-0 text-sky-400 border-sky-500/30 bg-sky-500/5">
-                                  {idx + 1}
-                                </span>
-                                <span className="text-xs text-white truncate font-medium">{link.url}</span>
+                        {links.map((link, idx) => {
+                          const isDuplicate = links.filter(l => l.url === link.url).length > 1;
+                          return (
+                            <div 
+                              key={idx} 
+                              className={`flex flex-col gap-2 p-3 rounded-2xl border transition-all ${
+                                isDuplicate 
+                                  ? 'bg-rose-500/10 border-rose-500/40' 
+                                  : 'bg-slate-900/40 border-slate-700/50'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                  <span className={`text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-lg border shrink-0 ${
+                                    isDuplicate 
+                                      ? 'text-rose-400 border-rose-500/30 bg-rose-500/10'
+                                      : 'text-sky-400 border-sky-500/30 bg-sky-500/5'
+                                  }`}>
+                                    {idx + 1}
+                                  </span>
+                                  <span className={`text-xs truncate font-medium ${isDuplicate ? 'text-rose-200' : 'text-white'}`}>
+                                    {link.url}
+                                  </span>
+                                </div>
+                                <div className={`shrink-0 px-2 py-1 rounded-lg text-[8px] font-black uppercase flex items-center gap-1 border ${
+                                  CHANNELS.find(c => c.id === link.platform)?.color || 'text-slate-400 border-slate-800'
+                                }`}>
+                                  <ChannelPlatformIcon id={link.platform} className="w-2.5 h-2.5" />
+                                  {link.platform === 'X (Twitter)' ? 'X' : link.platform}
+                                </div>
                               </div>
-                              <div className={`shrink-0 px-2 py-1 rounded-lg text-[8px] font-black uppercase flex items-center gap-1 border ${
-                                CHANNELS.find(c => c.id === link.platform)?.color || 'text-slate-400 border-slate-800'
-                              }`}>
-                                <ChannelPlatformIcon id={link.platform} className="w-2.5 h-2.5" />
-                                {link.platform === 'X (Twitter)' ? 'X' : link.platform}
-                              </div>
+                              {isDuplicate && (
+                                <div className="text-[8px] text-rose-400 font-bold flex items-center gap-1 pl-8">
+                                  ⚠️ Link Terdeteksi Duplikat
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                       
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="secondary" 
-                          fullWidth 
-                          className="py-3 h-auto text-[10px] font-black uppercase"
-                          onClick={() => {
-                            setIsReviewingLinks(false);
-                            setLinks([]);
-                            triggerHaptic('impact', 'light');
-                          }}
-                        >
-                          Ubah Link
-                        </Button>
-                        <Button 
-                          variant="primary" 
-                          fullWidth 
-                          className="py-3 h-auto text-[10px] font-black uppercase shadow-lg shadow-sky-500/20"
-                          onClick={() => {
-                            triggerHaptic('notification', 'success');
-                            const imageSection = document.getElementById('image-section');
-                            imageSection?.scrollIntoView({ behavior: 'smooth' });
-                          }}
-                        >
-                          Konfirmasi Data
-                        </Button>
-                      </div>
+                      {!isConfirmed && (
+                        <div className="flex gap-2 animate-in fade-in zoom-in duration-300">
+                          <Button 
+                            variant="secondary" 
+                            fullWidth 
+                            className="py-3 h-auto text-[10px] font-black uppercase"
+                            onClick={() => {
+                              setIsReviewingLinks(false);
+                              setLinks([]);
+                              triggerHaptic('impact', 'light');
+                            }}
+                          >
+                            Ubah Link
+                          </Button>
+                          <Button 
+                            variant="primary" 
+                            fullWidth 
+                            className="py-3 h-auto text-[10px] font-black uppercase shadow-lg shadow-sky-500/20"
+                            onClick={() => {
+                              const hasDuplicates = links.some(link => links.filter(l => l.url === link.url).length > 1);
+                              if (hasDuplicates) {
+                                setStatus({ type: 'error', message: 'Mohon perbaiki link yang duplikat sebelum konfirmasi.' });
+                                triggerHaptic('notification', 'error');
+                                return;
+                              }
+                              setIsConfirmed(true);
+                              triggerHaptic('notification', 'success');
+                              const imageSection = document.getElementById('image-section');
+                              imageSection?.scrollIntoView({ behavior: 'smooth' });
+                            }}
+                          >
+                            Konfirmasi Data
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
 
                 {/* Step 3: Visual Assets */}
-                <div id="image-section" className={`space-y-4 pt-2 transition-all duration-500 ${!isReviewingLinks ? 'opacity-30 pointer-events-none grayscale' : 'opacity-100'}`}>
+                <div id="image-section" className={`space-y-4 pt-2 transition-all duration-500 ${!isConfirmed ? 'opacity-30 pointer-events-none grayscale translate-y-4' : 'opacity-100 translate-y-0'}`}>
                   <div className="flex items-center justify-between px-1">
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
                       <ImageIcon className="w-4 h-4 text-sky-400" />
