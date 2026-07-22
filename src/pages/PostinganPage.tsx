@@ -487,10 +487,39 @@ export const PostinganPage: React.FC = () => {
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
                       <LinkIcon className="w-4 h-4 text-sky-400" />
                       Daftar Link & Platform
+                      {links.filter(l => l.url).length > 0 && (
+                        <span className="text-[9px] text-sky-400 normal-case font-bold ml-2">
+                          ({links.filter(l => l.url).length} terisi)
+                        </span>
+                      )}
                     </label>
                     <span className="text-[8px] text-emerald-400 font-black bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 flex items-center gap-1">
                       <ShieldCheck className="w-2.5 h-2.5" /> Anti Duplicate
                     </span>
+                  </div>
+
+                  {/* Bulk Paste Area */}
+                  <div className="relative group">
+                    <textarea
+                      placeholder="Tempel banyak link di sini (akan otomatis membagi ke kolom di bawah)..."
+                      className="w-full h-16 p-3 rounded-2xl bg-slate-950/40 border border-slate-800 text-[10px] text-slate-400 placeholder:text-slate-700 outline-none focus:border-sky-500/30 transition-all resize-none font-medium"
+                      onChange={(e) => {
+                        const content = e.target.value;
+                        const detectedLinks = content.match(/https?:\/\/[^\s]+/g);
+                        if (detectedLinks) {
+                          detectedLinks.slice(0, 10).forEach((url, i) => {
+                            updateLink(i, url);
+                          });
+                          e.target.value = ''; // Clear after parse
+                          triggerHaptic('notification', 'success');
+                        }
+                      }}
+                    />
+                    <div className="absolute top-2 right-2 opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none">
+                      <span className="text-[8px] font-black text-sky-500 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20 uppercase">
+                        Mode Tempel Cepat
+                      </span>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
@@ -510,13 +539,21 @@ export const PostinganPage: React.FC = () => {
                             }`}>
                               {idx + 1}
                             </span>
-                            <input
-                              type="text"
-                              value={link.url}
-                              onChange={(e) => updateLink(idx, e.target.value)}
-                              placeholder={`Paste Link #${startNumber + idx}...`}
-                              className="bg-transparent border-none text-white text-xs outline-none w-full placeholder:text-slate-700 font-medium py-1"
-                            />
+                              <input
+                                type="text"
+                                value={link.url}
+                                onChange={(e) => updateLink(idx, e.target.value)}
+                                placeholder={`Paste Link #${startNumber + idx}...`}
+                                className="bg-transparent border-none text-white text-xs outline-none w-full placeholder:text-slate-700 font-medium py-1"
+                              />
+                              {link.url && (
+                                <button 
+                                  onClick={() => updateLink(idx, '')}
+                                  className="p-1 hover:bg-white/10 rounded-full transition-colors text-slate-500 hover:text-white"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              )}
                           </div>
                           
                           <button

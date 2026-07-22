@@ -18,6 +18,15 @@ const JWT_SECRET = (process.env.JWT_SECRET || 'azurlizeteam_secret_jwt_key_2026'
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Global JSON error handler for /api routes
+app.use('/api', (err: any, req: Request, res: Response, next: any) => {
+  console.error('API Error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'Internal Server Error'
+  });
+});
+
 // HMAC SHA-256 verification function for Telegram WebApp initData
 function verifyTelegramInitData(initData: string): { valid: boolean; user?: unknown; error?: string } {
   if (!initData) {

@@ -63,7 +63,7 @@ export const OwnerPage: React.FC = () => {
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
         console.error('Non-JSON response:', text);
-        setWebhookStatus('❌ Gagal: Respon server bukan JSON. Pastikan backend berjalan dengan benar.');
+        setWebhookStatus(`❌ Gagal: Server Vercel Anda mengembalikan HTML (404/Error). Pastikan 'vercel.json' sudah dikonfigurasi dengan benar dan backend dideploy sebagai Serverless Function.`);
         return;
       }
 
