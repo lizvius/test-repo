@@ -201,15 +201,15 @@ app.post('/api/sheets/sync-report', async (req: Request, res: Response) => {
 // API Endpoint: Send Post (Multiple Images) to Telegram Group
 app.post('/api/telegram/send-post', async (req: Request, res: Response) => {
   try {
-    const { caption, images, recruiterName, recruiterUsername } = req.body;
+    const { links, startNumber, images, recruiterName, recruiterUsername, groupId, topicId } = req.body;
     
     if (!images || !Array.isArray(images) || images.length === 0) {
       res.status(400).json({ success: false, error: 'Setidaknya satu gambar diperlukan.' });
       return;
     }
 
-    const targetGroup = process.env.TELEGRAM_GROUP_ID || '';
-    const targetTopic = process.env.TELEGRAM_TOPIC_ID || '';
+    const targetGroup = groupId || process.env.TELEGRAM_GROUP_ID || '';
+    const targetTopic = topicId || process.env.TELEGRAM_TOPIC_ID || '';
 
     if (!targetGroup) {
       res.status(400).json({ success: false, error: 'ID Grup Telegram belum dikonfigurasi.' });
@@ -221,15 +221,27 @@ app.post('/api/telegram/send-post', async (req: Request, res: Response) => {
       return;
     }
 
+    // Format Date: DD-MM-YY
+    const now = new Date();
+    const dateStr = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).substring(2)}`;
+    
+    const endNumber = (startNumber || 1) + (links ? links.length : 0) - 1;
+    const rangeStr = `${startNumber}-${endNumber}`;
+    
+    const linkList = links && Array.isArray(links) 
+      ? links.map((l: string, i: number) => `${startNumber + i}. ${l}`).join('\n')
+      : '';
+
     const recTag = recruiterUsername ? `@${recruiterUsername.replace(/^@/, '')}` : recruiterName;
+    
     const fullCaption = `
-📸 <b>POSTINGAN REKRUITER</b>
+${dateStr}
+
+${rangeStr}
+
+${linkList}
 
 👤 <b>Recruiter:</b> ${recTag}
-💬 <b>Caption:</b>
-${caption}
-
-#Posting #Recruitment
 `.trim();
 
     const formData = new FormData();

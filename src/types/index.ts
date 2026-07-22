@@ -113,6 +113,7 @@ export interface SystemSettings {
   telegramTopicT0?: string;
   telegramTopicV0?: string;
   telegramTopicT3?: string;
+  telegramTopicPosting?: string;
   updatedAt: string;
 }
 

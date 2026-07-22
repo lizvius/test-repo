@@ -1,28 +1,50 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GlassCard } from '../components/common/GlassCard';
 import { Button } from '../components/common/Button';
-import { Input } from '../components/common/Input';
 import { useAuth } from '../hooks/useAuth';
 import { triggerHaptic } from '../telegram/webapp';
+import { getSystemSettings } from '../firebase/services/settingService';
+import { SystemSettings } from '../types';
 import { 
   Image as ImageIcon, 
   X, 
   Send, 
-  Loader2, 
   AlertCircle, 
   CheckCircle2, 
   Upload,
-  Plus
+  Plus,
+  Link as LinkIcon,
+  Globe,
+  Facebook,
+  Twitter,
+  Hash
 } from 'lucide-react';
 
+type SocialPlatform = 'Facebook' | 'X' | 'Other';
+
+interface SocialLink {
+  url: string;
+  platform: SocialPlatform;
+}
+
 export const PostinganPage: React.FC = () => {
-  const { userProfile } = useAuth();
-  const [caption, setCaption] = useState('');
+  const { userProfile, telegramUser } = useAuth();
+  const [links, setLinks] = useState<SocialLink[]>(Array(10).fill({ url: '', platform: 'Facebook' }));
+  const [startNumber, setStartNumber] = useState<number>(1);
   const [images, setImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
   const [status, setStatus] = useState<{ type: 'idle' | 'success' | 'error'; message?: string }>({ type: 'idle' });
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const s = await getSystemSettings();
+      setSettings(s);
+    };
+    fetchSettings();
+  }, []);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -46,7 +68,6 @@ export const PostinganPage: React.FC = () => {
       reader.readAsDataURL(file);
     });
 
-    // Reset input value so same file can be selected again if removed
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -55,9 +76,30 @@ export const PostinganPage: React.FC = () => {
     triggerHaptic('impact', 'light');
   };
 
+  const updateLink = (index: number, url: string) => {
+    const newLinks = [...links];
+    let platform: SocialPlatform = 'Other';
+    if (url.includes('facebook.com') || url.includes('fb.com') || url.includes('fb.watch')) {
+      platform = 'Facebook';
+    } else if (url.includes('x.com') || url.includes('twitter.com')) {
+      platform = 'X';
+    }
+    newLinks[index] = { url, platform };
+    setLinks(newLinks);
+  };
+
+  const getPlatformIcon = (platform: SocialPlatform) => {
+    switch (platform) {
+      case 'Facebook': return <Facebook className="w-4 h-4 text-blue-500" />;
+      case 'X': return <Twitter className="w-4 h-4 text-slate-200" />;
+      default: return <Globe className="w-4 h-4 text-emerald-400" />;
+    }
+  };
+
   const handleSubmit = async () => {
-    if (!caption.trim()) {
-      setStatus({ type: 'error', message: 'Keterangan/caption tidak boleh kosong.' });
+    const validLinks = links.filter(l => l.url.trim() !== '');
+    if (validLinks.length === 0) {
+      setStatus({ type: 'error', message: 'Minimal masukkan 1 link postingan.' });
       return;
     }
 
@@ -70,18 +112,22 @@ export const PostinganPage: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          caption,
+          links: validLinks.map(l => l.url),
+          startNumber,
           images,
           recruiterName: `${userProfile?.firstName} ${userProfile?.lastName || ''}`.trim(),
-          recruiterUsername: userProfile?.username
+          recruiterUsername: userProfile?.username || telegramUser?.username,
+          groupId: settings?.telegramGroupId,
+          topicId: settings?.telegramTopicPosting
         })
       });
 
       const result = await response.json();
       if (result.success) {
         setStatus({ type: 'success', message: 'Postingan berhasil dikirim ke grup Telegram!' });
-        setCaption('');
+        setLinks(Array(10).fill({ url: '', platform: 'Facebook' }));
         setImages([]);
+        setStartNumber(prev => prev + 10);
         triggerHaptic('notification', 'success');
       } else {
         throw new Error(result.error || 'Gagal mengirim postingan');
@@ -103,26 +149,65 @@ export const PostinganPage: React.FC = () => {
           <div>
             <h1 className="text-xl font-black text-white flex items-center gap-2">
               <ImageIcon className="w-6 h-6 text-sky-400" />
-              Buat Postingan
+              Batch Postingan
             </h1>
             <p className="text-[10px] text-slate-400 font-medium tracking-wide uppercase">
-              Kirim Batch 10 Gambar ke Grup
+              Kirim 10 Link & Gambar ke Grup
             </p>
           </div>
         </div>
 
         {/* Form Section */}
-        <GlassCard className="p-4 space-y-4">
+        <GlassCard className="p-4 space-y-5">
+          {/* Start Number Selection */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-400 uppercase px-1">Keterangan / Caption</label>
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              placeholder="Tulis keterangan postingan di sini..."
-              className="w-full min-h-[120px] p-3.5 rounded-2xl bg-slate-950/50 border border-slate-800 focus:border-sky-500/50 focus:ring-1 focus:ring-sky-500/20 text-slate-200 text-sm outline-none transition-all resize-none placeholder:text-slate-600"
-            />
+            <label className="text-xs font-bold text-slate-400 uppercase px-1 flex items-center gap-2">
+              <Hash className="w-3.5 h-3.5 text-amber-400" />
+              Nomor Awal Postingan
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                value={startNumber}
+                onChange={(e) => setStartNumber(parseInt(e.target.value) || 1)}
+                className="w-24 p-2.5 rounded-xl bg-slate-950/50 border border-slate-800 text-white font-bold text-center outline-none focus:border-sky-500/50"
+              />
+              <span className="text-xs text-slate-500 font-medium">
+                Bot akan memuat nomor: {startNumber} sampai {startNumber + 9}
+              </span>
+            </div>
           </div>
 
+          {/* Links Section */}
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-slate-400 uppercase px-1 flex items-center gap-2">
+              <LinkIcon className="w-3.5 h-3.5 text-sky-400" />
+              Link Sosmed (Maks 10)
+            </label>
+            <div className="space-y-2">
+              {links.map((link, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
+                    {getPlatformIcon(link.platform)}
+                  </div>
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-600">
+                      #{startNumber + idx}
+                    </span>
+                    <input
+                      type="text"
+                      value={link.url}
+                      onChange={(e) => updateLink(idx, e.target.value)}
+                      placeholder="https://facebook.com/..."
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/50 border border-slate-800 focus:border-sky-500/50 text-slate-200 text-[11px] outline-none transition-all placeholder:text-slate-700"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Images Section */}
           <div className="space-y-2">
             <div className="flex items-center justify-between px-1">
               <label className="text-xs font-bold text-slate-400 uppercase">
@@ -177,9 +262,6 @@ export const PostinganPage: React.FC = () => {
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
-                      <div className="absolute bottom-0 left-0 right-0 p-1 bg-black/40 backdrop-blur-[2px] text-[8px] font-bold text-white text-center">
-                        #{idx + 1}
-                      </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
@@ -222,11 +304,11 @@ export const PostinganPage: React.FC = () => {
           <Button
             fullWidth
             onClick={handleSubmit}
-            disabled={isUploading || !caption.trim() || images.length === 0}
+            disabled={isUploading || links.filter(l => l.url.trim() !== '').length === 0 || images.length === 0}
             isLoading={isUploading}
             icon={<Send className="w-4 h-4" />}
           >
-            Kirim {images.length > 0 ? `${images.length} Gambar` : 'Postingan'}
+            Kirim Batch Postingan
           </Button>
         </GlassCard>
 
@@ -238,15 +320,15 @@ export const PostinganPage: React.FC = () => {
           <ul className="space-y-1">
             <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
               <span className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 shrink-0" />
-              Bot akan mengirim postingan sebagai satu album (Media Group) jika terdapat lebih dari 1 gambar.
+              Bot akan mengirim sebagai Media Group (Album) berisi 10 gambar.
             </li>
             <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
               <span className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 shrink-0" />
-              Caption akan disematkan pada gambar pertama dalam album tersebut.
+              Format caption akan mencantumkan Tanggal, Range Nomor, dan List Link.
             </li>
             <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
               <span className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 shrink-0" />
-              Maksimal 10 gambar per pengiriman sesuai limitasi API Telegram.
+              Grup & Topic ID diatur secara otomatis dari menu Owner Settings.
             </li>
           </ul>
         </div>

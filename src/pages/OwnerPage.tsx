@@ -373,6 +373,17 @@ export const OwnerPage: React.FC = () => {
               />
             </div>
 
+            <div className="flex flex-col gap-1.5 bg-slate-900/80 p-3 rounded-2xl border border-slate-800">
+              <label className="text-xs font-bold text-white">Topic ID Posting (Album/Gambar)</label>
+              <input
+                type="text"
+                placeholder="Contoh: 126"
+                value={settings.telegramTopicPosting || ''}
+                onChange={(e) => setSettings({ ...settings, telegramTopicPosting: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-amber-500"
+              />
+            </div>
+
             <Button fullWidth isLoading={isSavingSettings} onClick={handleSaveSettings}>
               Simpan Pengaturan
             </Button>
