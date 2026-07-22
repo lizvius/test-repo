@@ -328,6 +328,50 @@ export const OwnerPage: React.FC = () => {
               />
             </div>
 
+            <div className="flex flex-col gap-1.5 bg-slate-900/80 p-3 rounded-2xl border border-slate-800">
+              <label className="text-xs font-bold text-white">Telegram Group ID (Tujuan Notifikasi)</label>
+              <input
+                type="text"
+                placeholder="Contoh: -100123456789"
+                value={settings.telegramGroupId || ''}
+                onChange={(e) => setSettings({ ...settings, telegramGroupId: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5 bg-slate-900/80 p-3 rounded-2xl border border-slate-800">
+              <label className="text-xs font-bold text-white">Topic ID Grup T0 (Tujuan Notifikasi)</label>
+              <input
+                type="text"
+                placeholder="Contoh: 123"
+                value={settings.telegramTopicT0 || ''}
+                onChange={(e) => setSettings({ ...settings, telegramTopicT0: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5 bg-slate-900/80 p-3 rounded-2xl border border-slate-800">
+              <label className="text-xs font-bold text-white">Topic ID Grup V0 (Tujuan Notifikasi)</label>
+              <input
+                type="text"
+                placeholder="Contoh: 124"
+                value={settings.telegramTopicV0 || ''}
+                onChange={(e) => setSettings({ ...settings, telegramTopicV0: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5 bg-slate-900/80 p-3 rounded-2xl border border-slate-800">
+              <label className="text-xs font-bold text-white">Topic ID Grup T3 (Tujuan Notifikasi)</label>
+              <input
+                type="text"
+                placeholder="Contoh: 125"
+                value={settings.telegramTopicT3 || ''}
+                onChange={(e) => setSettings({ ...settings, telegramTopicT3: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-white outline-none focus:border-amber-500"
+              />
+            </div>
+
             <Button fullWidth isLoading={isSavingSettings} onClick={handleSaveSettings}>
               Simpan Pengaturan
             </Button>

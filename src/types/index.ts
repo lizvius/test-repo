@@ -72,6 +72,7 @@ export interface DailyReport {
   posting?: number;
   permission?: number;
   note?: string;
+  videoUrl?: string;
   createdAt: string;
 }
 
@@ -90,6 +91,7 @@ export interface DailyReportFormData {
   posting?: number;
   permission?: number;
   note?: string;
+  videoUrl?: string;
 }
 
 export interface Announcement {
@@ -106,6 +108,11 @@ export interface SystemSettings {
   systemStatus: 'Operational' | 'Maintenance';
   allowRegistrations: boolean;
   announcementHeader: string;
+  telegramGroupId?: string;
+  telegramTopicId?: string;
+  telegramTopicT0?: string;
+  telegramTopicV0?: string;
+  telegramTopicT3?: string;
   updatedAt: string;
 }
 

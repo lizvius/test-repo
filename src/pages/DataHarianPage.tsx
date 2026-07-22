@@ -5,7 +5,9 @@ import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
 import { useReports } from '../hooks/useReports';
 import { useAuth } from '../hooks/useAuth';
-import { DailyReportFormData } from '../types';
+import { DailyReportFormData, SystemSettings } from '../types';
+import { getSystemSettings } from '../firebase/services/settingService';
+import { sendReportToTelegramApi } from '../services/api';
 import { 
   CalendarClock, 
   CheckCircle2, 
@@ -455,19 +457,42 @@ export const DataHarianPage: React.FC = () => {
     try {
       const parsedTg = parseTelegramUsername(formData.applicantTelegramUsername);
       const finalTg = parsedTg.formatted || formData.applicantTelegramUsername.trim();
+      
+      const targetGrup = !isAdminOrOwner && formData.grup === 'T3' ? 'T0' : formData.grup;
 
-      await submitReport({
+      const reportData = {
         ...formData,
         date: todayStr, // Ensure auto set date
         recruiterUsername: autoRecruiterUsername, // Ensure auto set recruiter username
         applicantTelegramUsername: finalTg,
         // Recruiter result is strictly 'Pending', Admin/Owner can set custom result
         result: isAdminOrOwner ? formData.result : 'Pending',
-        // Recruiter can only select T0 or V0, T3 is for Admin/Owner
-        grup: !isAdminOrOwner && formData.grup === 'T3' ? 'T0' : formData.grup
-      });
+        grup: targetGrup
+      };
 
-      setSuccessMsg('Data Harian pelamar berhasil disimpan & tersinkron ke Google Sheets!');
+      await submitReport(reportData);
+      
+      // Fetch settings to get Group ID and Topic ID
+      try {
+        const sysSettings = await getSystemSettings();
+        const groupId = sysSettings.telegramGroupId;
+        let topicId = '';
+        if (targetGrup === 'T0') topicId = sysSettings.telegramTopicT0 || '';
+        if (targetGrup === 'V0') topicId = sysSettings.telegramTopicV0 || '';
+        if (targetGrup === 'T3') topicId = sysSettings.telegramTopicT3 || '';
+
+        // Call our proxy server to send the message to Telegram
+        if (groupId) {
+          const res = await sendReportToTelegramApi(reportData, formData.videoUrl, groupId, topicId);
+          if (!res.success) {
+            console.error('Failed to send to telegram:', res.error);
+          }
+        }
+      } catch (e) {
+        console.error('Error sending telegram notification:', e);
+      }
+
+      setSuccessMsg('Data Harian pelamar berhasil disimpan & tersinkron ke Telegram & Google Sheets!');
 
       // Reset candidate specific fields for next entry
       setFormData((prev) => ({
@@ -477,7 +502,8 @@ export const DataHarianPage: React.FC = () => {
         applicantTelegramUsername: '',
         result: 'Pending',
         grup: 'T0',
-        note: ''
+        note: '',
+        videoUrl: undefined
       }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal menyimpan data harian.');
@@ -986,6 +1012,29 @@ export const DataHarianPage: React.FC = () => {
               value={formData.note}
               onChange={(e) => setFormData({ ...formData, note: e.target.value })}
               className="w-full rounded-2xl py-3 px-4 text-sm font-medium outline-none border border-slate-800 bg-slate-900/80 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-white transition-all placeholder:text-slate-500"
+            />
+          </div>
+
+          {/* Upload Video Bukti */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold tracking-wider text-slate-400 uppercase px-1 flex items-center gap-1.5">
+              <span className="w-3.5 h-3.5 text-slate-400">🎥</span>
+              <span>Bukti Video</span>
+            </label>
+            <input
+              type="file"
+              accept="video/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onload = (ev) => {
+                    setFormData({ ...formData, videoUrl: ev.target?.result as string });
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+              className="w-full text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-500/20 file:text-sky-400 hover:file:bg-sky-500/30"
             />
           </div>
 

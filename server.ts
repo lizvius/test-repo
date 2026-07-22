@@ -15,7 +15,8 @@ const PORT = 3000;
 const TELEGRAM_BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || '8892793996:AAFEBvD5fbQ8QAkUOFe5PHSFKHCocBbNSPA').trim().replace(/^["']|["']$/g, '');
 const JWT_SECRET = (process.env.JWT_SECRET || 'azurlizeteam_secret_jwt_key_2026').trim().replace(/^["']|["']$/g, '');
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // HMAC SHA-256 verification function for Telegram WebApp initData
 function verifyTelegramInitData(initData: string): { valid: boolean; user?: unknown; error?: string } {
@@ -194,6 +195,137 @@ app.post('/api/sheets/sync-report', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[Sheets API] Error syncing report to Google Sheets:', err);
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Gagal mencatat laporan ke Google Sheets' });
+  }
+});
+
+// API Endpoint: Send Daily Report & Video directly to Telegram Group Topic
+app.post('/api/telegram/send-report', async (req: Request, res: Response) => {
+  try {
+    const { report, videoDataUrl, groupId, topicId } = req.body;
+    if (!report) {
+      res.status(400).json({ success: false, error: 'Data laporan tidak ditemukan' });
+      return;
+    }
+
+    const targetGroup = groupId || process.env.TELEGRAM_GROUP_ID || '';
+    const targetTopic = topicId || process.env.TELEGRAM_TOPIC_ID || '';
+
+    if (!targetGroup) {
+      res.status(400).json({
+        success: false,
+        error: 'ID Grup Telegram belum dikonfigurasi. Mohon isi ID Grup di Pengaturan.'
+      });
+      return;
+    }
+
+    if (!TELEGRAM_BOT_TOKEN) {
+      res.status(400).json({ success: false, error: 'Token Bot Telegram tidak dikonfigurasi.' });
+      return;
+    }
+
+    const recUsername = report.recruiterUsername ? `@${report.recruiterUsername.replace(/^@/, '')}` : (report.username ? `@${report.username}` : report.name);
+    const applicantTg = report.applicantTelegramUsername ? `@${report.applicantTelegramUsername.replace(/^@/, '')}` : '-';
+
+    const captionHtml = `
+📊 <b>LAPORAN DATA HARIAN REKRUITER</b>
+
+👤 <b>Recruiter:</b> ${recUsername}
+📅 <b>Tanggal:</b> ${report.date || '-'}
+🏢 <b>Channel:</b> ${report.channel || '-'}
+
+📲 <b>WA Pelamar:</b> ${report.applicantWhatsapp || '-'}
+🐱 <b>UID 9Kucing:</b> ${report.uid9Kucing || '-'}
+✈️ <b>TG Pelamar:</b> ${applicantTg}
+🏷️ <b>Grup:</b> ${report.grup || 'T0'}
+📌 <b>Status:</b> ${report.result || 'Pending'}
+
+📊 <b>Statistik Hari Ini:</b>
+• Visit: ${report.visit || 0}
+• Apply: ${report.applicant || 0}
+• Quality: ${report.quality || 0}
+• Posting: ${report.posting || 0}
+• Izin: ${report.permission || 0}
+
+💬 <b>Catatan:</b> ${report.note || '-'}
+`.trim();
+
+    // Send video if available
+    if (videoDataUrl && typeof videoDataUrl === 'string' && videoDataUrl.startsWith('data:')) {
+      const match = videoDataUrl.match(/^data:(.*?);base64,(.*)$/);
+      if (match) {
+        const mimeType = match[1] || 'video/mp4';
+        const base64Data = match[2];
+        const buffer = Buffer.from(base64Data, 'base64');
+        const blob = new Blob([buffer], { type: mimeType });
+
+        const formData = new FormData();
+        formData.append('chat_id', targetGroup);
+        if (targetTopic) {
+          formData.append('message_thread_id', String(targetTopic));
+        }
+        formData.append('caption', captionHtml);
+        formData.append('parse_mode', 'HTML');
+
+        const ext = mimeType.includes('quicktime') || mimeType.includes('mov') ? 'mov' : 'mp4';
+        formData.append('video', blob, `laporan_${report.reportId || Date.now()}.${ext}`);
+
+        const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo`, {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+        if (result.ok) {
+          res.json({ success: true, data: result.result, message: 'Laporan dan Video berhasil terkirim ke Telegram Group Topic!' });
+          return;
+        } else {
+          console.warn('[Telegram API] sendVideo failed, falling back to sendMessage:', result);
+        }
+      }
+    } else if (videoDataUrl && typeof videoDataUrl === 'string' && videoDataUrl.startsWith('http')) {
+      const payload: Record<string, unknown> = {
+        chat_id: targetGroup,
+        video: videoDataUrl,
+        caption: captionHtml,
+        parse_mode: 'HTML'
+      };
+      if (targetTopic) payload.message_thread_id = Number(targetTopic);
+
+      const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendVideo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const result = await response.json();
+      if (result.ok) {
+        res.json({ success: true, data: result.result, message: 'Laporan dan Video berhasil terkirim ke Telegram Group Topic!' });
+        return;
+      }
+    }
+
+    // Text-only message fallback
+    const textPayload: Record<string, unknown> = {
+      chat_id: targetGroup,
+      text: captionHtml + (videoDataUrl ? `\n\n📹 <b>Video Bukti:</b> ${videoDataUrl}` : ''),
+      parse_mode: 'HTML'
+    };
+    if (targetTopic) textPayload.message_thread_id = Number(targetTopic);
+
+    const response = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(textPayload)
+    });
+
+    const result = await response.json();
+    if (result.ok) {
+      res.json({ success: true, data: result.result, message: 'Laporan berhasil terkirim ke Telegram Group Topic!' });
+    } else {
+      res.status(400).json({ success: false, error: result.description || 'Gagal mengirim pesan ke Telegram' });
+    }
+  } catch (err) {
+    console.error('[Telegram API] Error sending report:', err);
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Gagal mengirim laporan ke Telegram' });
   }
 });
 

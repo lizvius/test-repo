@@ -96,3 +96,27 @@ export async function syncReportToSheetsApi(report: unknown): Promise<ApiRespons
     };
   }
 }
+
+export async function sendReportToTelegramApi(
+  report: unknown,
+  videoDataUrl?: string,
+  groupId?: string,
+  topicId?: string
+): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/telegram/send-report`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ report, videoDataUrl, groupId, topicId })
+    });
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Gagal mengirim laporan ke Telegram'
+    };
+  }
+}
