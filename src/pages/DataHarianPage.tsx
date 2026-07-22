@@ -33,7 +33,8 @@ import {
   Lock,
   Loader2,
   AlertTriangle,
-  UserX
+  UserX,
+  Archive
 } from 'lucide-react';
 
 // Channel Platform Real SVG Icons
@@ -276,10 +277,18 @@ const CHANNELS = [
 export const DataHarianPage: React.FC = () => {
   const { userProfile, telegramUser } = useAuth();
   const { reports, submitReport, isLoading } = useReports();
+  const [activeTab, setActiveTab] = useState<'formulir' | 'minggu_ini' | 'pemeriksaan' | 'arsip'>('formulir');
 
   const isAdminOrOwner = userProfile?.role === 'Admin' || userProfile?.role === 'Owner';
   const telegramId = userProfile?.telegramId || String(telegramUser?.id || '');
-  const todayStr = new Date().toISOString().split('T')[0];
+  const getLocalDateString = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayStr = getLocalDateString(new Date());
 
   // Auto-set recruiter username
   const autoRecruiterUsername = userProfile?.username 
@@ -292,6 +301,36 @@ export const DataHarianPage: React.FC = () => {
 
   // Latest user reports (memoized for performance)
   const userReports = useMemo(() => reports.filter((r) => r.telegramId === telegramId), [reports, telegramId]);
+
+  // Calculate current week's Monday
+  const currentMondayStr = useMemo(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    return getLocalDateString(monday);
+  }, []);
+
+  // Calculate last week's Monday
+  const lastMondayStr = useMemo(() => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1) - 7;
+    const monday = new Date(d.setDate(diff));
+    return getLocalDateString(monday);
+  }, []);
+
+  const reportsMingguIni = useMemo(() => {
+    return userReports.filter(r => r.date >= currentMondayStr);
+  }, [userReports, currentMondayStr]);
+
+  const reportsPemeriksaan = useMemo(() => {
+    return userReports.filter(r => r.date >= lastMondayStr && r.date < currentMondayStr);
+  }, [userReports, currentMondayStr, lastMondayStr]);
+
+  const reportsArsip = useMemo(() => {
+    return userReports.filter(r => r.date < lastMondayStr);
+  }, [userReports, lastMondayStr]);
 
   // Check if submitted report today
   const hasReportToday = useMemo(() => userReports.some((r) => r.date === todayStr), [userReports, todayStr]);
@@ -530,7 +569,53 @@ export const DataHarianPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Countdown Card */}
+      {/* Tabs */}
+      <div className="flex bg-slate-900/80 p-1 rounded-2xl border border-slate-800 shrink-0 gap-1 overflow-x-auto no-scrollbar">
+        <button
+          type="button"
+          onClick={() => setActiveTab('formulir')}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'formulir' ? 'bg-sky-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <FileText className="w-3.5 h-3.5" />
+          <span>Formulir</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('minggu_ini')}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'minggu_ini' ? 'bg-amber-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <CalendarClock className="w-3.5 h-3.5" />
+          <span>Minggu Ini ({reportsMingguIni.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('pemeriksaan')}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'pemeriksaan' ? 'bg-emerald-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <CheckCircle2 className="w-3.5 h-3.5" />
+          <span>Pemeriksaan ({reportsPemeriksaan.length})</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('arsip')}
+          className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
+            activeTab === 'arsip' ? 'bg-purple-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          <Archive className="w-3.5 h-3.5" />
+          <span>Arsip ({reportsArsip.length})</span>
+        </button>
+      </div>
+
+      {activeTab === 'formulir' && (
+        <>
+          {/* Countdown Card */}
       <GlassCard className="relative overflow-hidden border-sky-500/30 bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-blue-950/70 p-4 shadow-2xl">
         <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-2.5">
           <div className="flex items-center gap-2">
@@ -1116,6 +1201,227 @@ export const DataHarianPage: React.FC = () => {
               </div>
             ))}
           </div>
+        </GlassCard>
+      )}
+        </>
+      )}
+
+      {activeTab === 'minggu_ini' && (
+        <GlassCard className="p-4 space-y-3 border-slate-800 bg-slate-900/80">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-xl bg-amber-500/15 text-amber-400">
+                <FileSpreadsheet className="w-4 h-4" />
+              </div>
+              <span className="text-xs font-bold text-white uppercase tracking-wider">
+                Data Minggu Ini
+              </span>
+            </div>
+            <span className="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full font-bold">
+              Total {reportsMingguIni.length}
+            </span>
+          </div>
+          
+          {reportsMingguIni.length === 0 ? (
+            <div className="text-center py-6 text-xs text-slate-500 font-medium">Belum ada data minggu ini.</div>
+          ) : (
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+              {reportsMingguIni.map((rep, idx) => (
+                <div key={rep.reportId || idx} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white flex items-center gap-1.5">
+                      <Phone className="w-3 h-3 text-emerald-400" />
+                      {rep.applicantWhatsapp || 'Tanpa No WA'}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                      rep.result === 'ACC'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : rep.result === 'REJECT'
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    }`}>
+                      {rep.result || 'Pending'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
+                    <span>Tanggal: <strong className="text-slate-200">{rep.date || '-'}</strong></span>
+                    <span>UID: <strong className="text-slate-200">{rep.uid9Kucing || '-'}</strong></span>
+                    <span>Channel: <strong className="text-slate-200">{rep.channel || '-'}</strong></span>
+                    <span>Grup: <strong className="text-slate-200">{rep.grup || '-'}</strong></span>
+                  </div>
+
+                  {rep.applicantTelegramUsername && (() => {
+                    const { clean, formatted, url } = parseTelegramUsername(rep.applicantTelegramUsername);
+                    if (!clean) return null;
+                    return (
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80 mt-1">
+                        <div className="flex items-center gap-1.5 text-[10px] text-sky-300 font-mono font-bold">
+                          <Send className="w-3 h-3 text-sky-400 shrink-0" />
+                          <span>{formatted}</span>
+                        </div>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-[10px] text-sky-300 font-bold flex items-center gap-1 transition-all"
+                        >
+                          <span>Chat Pelamar</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ))}
+            </div>
+          )}
+        </GlassCard>
+      )}
+
+      {activeTab === 'pemeriksaan' && (
+        <GlassCard className="p-4 space-y-3 border-slate-800 bg-slate-900/80">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-xl bg-emerald-500/15 text-emerald-400">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <span className="text-xs font-bold text-white uppercase tracking-wider">
+                Pemeriksaan (Data Minggu Lalu)
+              </span>
+            </div>
+            <span className="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full font-bold">
+              Total {reportsPemeriksaan.length}
+            </span>
+          </div>
+
+          {reportsPemeriksaan.length === 0 ? (
+            <div className="text-center py-6 text-xs text-slate-500 font-medium">Tidak ada data minggu lalu.</div>
+          ) : (
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+              {reportsPemeriksaan.map((rep, idx) => (
+                <div key={rep.reportId || idx} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white flex items-center gap-1.5">
+                      <Phone className="w-3 h-3 text-emerald-400" />
+                      {rep.applicantWhatsapp || 'Tanpa No WA'}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                      rep.result === 'ACC'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : rep.result === 'REJECT'
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    }`}>
+                      {rep.result || 'Pending'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
+                    <span>Tanggal: <strong className="text-slate-200">{rep.date || '-'}</strong></span>
+                    <span>UID: <strong className="text-slate-200">{rep.uid9Kucing || '-'}</strong></span>
+                    <span>Channel: <strong className="text-slate-200">{rep.channel || '-'}</strong></span>
+                    <span>Grup: <strong className="text-slate-200">{rep.grup || '-'}</strong></span>
+                  </div>
+
+                  {rep.applicantTelegramUsername && (() => {
+                    const { clean, formatted, url } = parseTelegramUsername(rep.applicantTelegramUsername);
+                    if (!clean) return null;
+                    return (
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80 mt-1">
+                        <div className="flex items-center gap-1.5 text-[10px] text-sky-300 font-mono font-bold">
+                          <Send className="w-3 h-3 text-sky-400 shrink-0" />
+                          <span>{formatted}</span>
+                        </div>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-[10px] text-sky-300 font-bold flex items-center gap-1 transition-all"
+                        >
+                          <span>Chat Pelamar</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ))}
+            </div>
+          )}
+        </GlassCard>
+      )}
+
+      {activeTab === 'arsip' && (
+        <GlassCard className="p-4 space-y-3 border-slate-800 bg-slate-900/80">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-xl bg-purple-500/15 text-purple-400">
+                <Archive className="w-4 h-4" />
+              </div>
+              <span className="text-xs font-bold text-white uppercase tracking-wider">
+                Arsip Data
+              </span>
+            </div>
+            <span className="text-[10px] bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full font-bold">
+              Total {reportsArsip.length}
+            </span>
+          </div>
+
+          {reportsArsip.length === 0 ? (
+            <div className="text-center py-6 text-xs text-slate-500 font-medium">Tidak ada data di arsip.</div>
+          ) : (
+            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-1">
+              {reportsArsip.map((rep, idx) => (
+                <div key={rep.reportId || idx} className="bg-slate-950 p-3 rounded-2xl border border-slate-800 text-xs space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-white flex items-center gap-1.5">
+                      <Phone className="w-3 h-3 text-emerald-400" />
+                      {rep.applicantWhatsapp || 'Tanpa No WA'}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${
+                      rep.result === 'ACC'
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        : rep.result === 'REJECT'
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                    }`}>
+                      {rep.result || 'Pending'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
+                    <span>Tanggal: <strong className="text-slate-200">{rep.date || '-'}</strong></span>
+                    <span>UID: <strong className="text-slate-200">{rep.uid9Kucing || '-'}</strong></span>
+                    <span>Channel: <strong className="text-slate-200">{rep.channel || '-'}</strong></span>
+                    <span>Grup: <strong className="text-slate-200">{rep.grup || '-'}</strong></span>
+                  </div>
+
+                  {rep.applicantTelegramUsername && (() => {
+                    const { clean, formatted, url } = parseTelegramUsername(rep.applicantTelegramUsername);
+                    if (!clean) return null;
+                    return (
+                      <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80 mt-1">
+                        <div className="flex items-center gap-1.5 text-[10px] text-sky-300 font-mono font-bold">
+                          <Send className="w-3 h-3 text-sky-400 shrink-0" />
+                          <span>{formatted}</span>
+                        </div>
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-[10px] text-sky-300 font-bold flex items-center gap-1 transition-all"
+                        >
+                          <span>Chat Pelamar</span>
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      </div>
+                    );
+                  })()}
+                </div>
+              ))}
+            </div>
+          )}
         </GlassCard>
       )}
     </motion.div>
