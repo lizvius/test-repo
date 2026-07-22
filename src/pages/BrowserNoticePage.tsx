@@ -28,7 +28,7 @@ export const BrowserNoticePage: React.FC = () => {
           <p className="font-bold text-slate-200">Cara Membuka Aplikasi:</p>
           <ol className="list-decimal list-inside space-y-1.5 text-slate-300 font-medium">
             <li>Buka aplikasi Telegram di perangkat Anda.</li>
-            <li>Cari Bot Rekrutmen <strong className="text-sky-400 font-bold">@AzurLizeRecruitBot</strong></li>
+            <li>Cari Bot Rekrutmen <strong className="text-sky-400 font-bold">@azurlize_recruitment_bot</strong></li>
             <li>Tekan tombol <strong className="text-sky-400 font-bold">"Buka Web App"</strong> atau kirim perintah <code className="text-amber-300 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">/app</code></li>
           </ol>
         </div>
@@ -37,7 +37,7 @@ export const BrowserNoticePage: React.FC = () => {
           <Button
             fullWidth
             onClick={() => {
-              window.location.href = 'https://t.me';
+              window.location.href = 'https://t.me/azurlize_recruitment_bot';
             }}
           >
             Buka Telegram
