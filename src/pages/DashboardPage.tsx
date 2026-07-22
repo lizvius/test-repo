@@ -5,6 +5,7 @@ import { StatusBadge } from '../components/common/StatusBadge';
 import { TabType } from '../components/navigation/BottomNav';
 import { useAuth } from '../hooks/useAuth';
 import { useReports } from '../hooks/useReports';
+import { formatUsername, formatWIBDate } from '../utils/format';
 import { Announcement } from '../types';
 import { getAnnouncements } from '../firebase/services/announcementService';
 import { getSystemSettings } from '../firebase/services/settingService';
@@ -162,7 +163,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
               {userProfile?.firstName} {userProfile?.lastName}
             </h2>
             <span className="text-xs text-slate-400 font-medium">
-              @{userProfile?.username || telegramUser?.username || 'no_username'}
+              {formatUsername(userProfile?.username || telegramUser?.username)}
             </span>
 
             <div className="flex items-center gap-2 mt-2">
@@ -316,7 +317,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
                   {ann.content}
                 </p>
                 <span className="text-[10px] text-slate-500 block pt-1">
-                  Oleh: {ann.author} &bull; {new Date(ann.createdAt).toLocaleDateString('id-ID')}
+                  Oleh: {ann.author} &bull; {formatWIBDate(ann.createdAt)}
                 </span>
               </GlassCard>
             ))}

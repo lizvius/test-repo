@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { GlassCard } from '../components/common/GlassCard';
 import { Announcement } from '../types';
 import { getAnnouncements } from '../firebase/services/announcementService';
+import { formatWIBDate } from '../utils/format';
 import { Megaphone, Pin, Calendar, RefreshCw } from 'lucide-react';
 
 export const PengumumanPage: React.FC = () => {
@@ -86,11 +87,7 @@ export const PengumumanPage: React.FC = () => {
                 <span className="font-semibold text-sky-400">Oleh: {ann.author}</span>
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
-                  {new Date(ann.createdAt).toLocaleDateString('id-ID', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
+                  {formatWIBDate(ann.createdAt)}
                 </span>
               </div>
             </GlassCard>

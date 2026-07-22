@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GlassCard } from '../components/common/GlassCard';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { Button } from '../components/common/Button';
+import { formatUsername, formatWIBDate, formatWIBDateTime } from '../utils/format';
 import { useRecruiters } from '../hooks/useRecruiters';
 import { UserProfile, UserStatus } from '../types';
 import { getGoogleSheetInfoApi } from '../services/api';
@@ -185,7 +186,7 @@ export const AdminPage: React.FC = () => {
                       <StatusBadge role={user.role} size="sm" />
                     </h4>
                     <span className="text-xs text-sky-400 font-medium block">
-                      @{user.username || 'tanpa_username'} &bull; ID: {user.telegramId}
+                      {formatUsername(user.username)} &bull; ID: {user.telegramId}
                     </span>
                   </div>
                 </div>
@@ -209,7 +210,7 @@ export const AdminPage: React.FC = () => {
                 </div>
                 <div>
                   <span className="text-[10px] text-slate-500 font-semibold uppercase block">Didaftarkan:</span>
-                  <span className="text-slate-300">{new Date(user.createdAt).toLocaleDateString('id-ID')}</span>
+                  <span className="text-slate-300">{formatWIBDate(user.createdAt)}</span>
                 </div>
               </div>
 
@@ -298,7 +299,7 @@ export const AdminPage: React.FC = () => {
 
             <div className="space-y-2 text-xs">
               <p><strong className="text-slate-400">Nama:</strong> {selectedUser.firstName} {selectedUser.lastName}</p>
-              <p><strong className="text-slate-400">Username:</strong> @{selectedUser.username}</p>
+              <p><strong className="text-slate-400">Username:</strong> {formatUsername(selectedUser.username)}</p>
               <p><strong className="text-slate-400">Telegram ID:</strong> {selectedUser.telegramId}</p>
               <p><strong className="text-slate-400">Email:</strong> {selectedUser.email}</p>
               <p><strong className="text-slate-400">WhatsApp:</strong> {selectedUser.whatsapp}</p>
@@ -306,7 +307,7 @@ export const AdminPage: React.FC = () => {
               <p><strong className="text-slate-400">Role:</strong> {selectedUser.role}</p>
               <p><strong className="text-slate-400">Status:</strong> {selectedUser.status}</p>
               <p><strong className="text-slate-400">Disetujui Oleh:</strong> {selectedUser.approvedBy || '-'}</p>
-              <p><strong className="text-slate-400">Waktu Persetujuan:</strong> {selectedUser.approvedAt ? new Date(selectedUser.approvedAt).toLocaleString('id-ID') : '-'}</p>
+              <p><strong className="text-slate-400">Waktu Persetujuan:</strong> {selectedUser.approvedAt ? formatWIBDateTime(selectedUser.approvedAt) : '-'}</p>
             </div>
 
             <div className="pt-2">

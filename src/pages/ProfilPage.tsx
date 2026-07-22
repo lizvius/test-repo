@@ -1,6 +1,7 @@
 import React from 'react';
 import { GlassCard } from '../components/common/GlassCard';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { formatUsername, formatWIBDate } from '../utils/format';
 import { useAuth } from '../hooks/useAuth';
 import { User, Mail, Phone, Key, Shield, Hash, LogOut, ExternalLink } from 'lucide-react';
 
@@ -39,7 +40,7 @@ export const ProfilPage: React.FC = () => {
               {userProfile?.firstName} {userProfile?.lastName}
             </h3>
             <span className="text-xs font-semibold text-sky-400 block">
-              @{userProfile?.username || telegramUser?.username || 'tanpa_username'}
+              {formatUsername(userProfile?.username || telegramUser?.username)}
             </span>
             <div className="flex items-center justify-center gap-2 pt-1">
               {userProfile?.role && <StatusBadge role={userProfile.role} />}
@@ -91,13 +92,7 @@ export const ProfilPage: React.FC = () => {
               <Shield className="w-4 h-4 text-purple-400" /> Tanggal Didaftarkan
             </span>
             <span className="font-semibold text-slate-300">
-              {userProfile?.createdAt
-                ? new Date(userProfile.createdAt).toLocaleDateString('id-ID', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric'
-                  })
-                : '-'}
+              {formatWIBDate(userProfile?.createdAt)}
             </span>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
 import { AzurLizeLogo } from '../components/logo/AzurLizeLogo';
 import { useAuth } from '../hooks/useAuth';
+import { formatUsername } from '../utils/format';
 import { createUserProfile, getUserProfile } from '../firebase/services/userService';
 import { RegistrationFormData } from '../types';
 import { User, Mail, Phone, ShieldCheck, CheckCircle2 } from 'lucide-react';
@@ -185,7 +186,7 @@ export const LoginPage: React.FC = () => {
                     {telegramUser.first_name} {telegramUser.last_name || ''}
                   </span>
                   <span className="text-xs text-sky-400 font-medium">
-                    @{telegramUser.username || 'tanpa_username'} &bull; ID: {telegramUser.id}
+                    {formatUsername(telegramUser.username)} &bull; ID: {telegramUser.id}
                   </span>
                   <span className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Terdeteksi Otomatis (Telegram WebApp)

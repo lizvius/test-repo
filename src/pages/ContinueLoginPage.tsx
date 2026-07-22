@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { GlassCard } from '../components/common/GlassCard';
 import { Button } from '../components/common/Button';
+import { formatUsername } from '../utils/format';
 import { AzurLizeLogo } from '../components/logo/AzurLizeLogo';
 import { useAuth } from '../hooks/useAuth';
 import { LogIn, HelpCircle, UserCheck } from 'lucide-react';
@@ -84,7 +85,7 @@ export const ContinueLoginPage: React.FC<ContinueLoginPageProps> = ({ onShowInst
               </span>
               {usernameToDisplay && (
                 <span className="text-xs text-sky-400 font-medium truncate">
-                  @{usernameToDisplay}
+                  {formatUsername(usernameToDisplay)}
                 </span>
               )}
               <span className="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">

@@ -6,6 +6,7 @@ import { Button } from '../components/common/Button';
 import { useReports } from '../hooks/useReports';
 import { useAuth } from '../hooks/useAuth';
 import { DailyReportFormData, DailyReport, SystemSettings } from '../types';
+import { formatUsername, formatWIBDate } from '../utils/format';
 import { getSystemSettings } from '../firebase/services/settingService';
 import { sendReportToTelegramApi } from '../services/api';
 import { 
@@ -316,11 +317,11 @@ const ReportListCard: React.FC<{ rep: DailyReport, isAdminOrOwner: boolean, onUp
       </div>
       
       <div className="flex items-center gap-3 text-[10px] text-slate-400 pt-1">
-        <span>Tanggal: <strong className="text-slate-200">{rep.date || '-'}</strong></span>
+        <span>Tanggal: <strong className="text-slate-200">{formatWIBDate(rep.date)}</strong></span>
         <span>UID: <strong className="text-slate-200">{rep.uid9Kucing || '-'}</strong></span>
         <span>Channel: <strong className="text-slate-200">{rep.channel || '-'}</strong></span>
         <span>Grup: <strong className="text-slate-200">{rep.grup || '-'}</strong></span>
-        {isAdminOrOwner && <span>Recruiter: <strong className="text-slate-200">@{rep.recruiterUsername || '-'}</strong></span>}
+        {isAdminOrOwner && <span>Recruiter: <strong className="text-slate-200">{formatUsername(rep.recruiterUsername)}</strong></span>}
       </div>
 
       {clean && (
@@ -362,11 +363,11 @@ export const DataHarianPage: React.FC = () => {
 
   // Auto-set recruiter username
   const autoRecruiterUsername = userProfile?.username 
-    ? `@${userProfile.username.replace(/^@/, '')}`
+    ? formatUsername(userProfile.username)
     : telegramUser?.username
-    ? `@${telegramUser.username.replace(/^@/, '')}`
+    ? formatUsername(telegramUser.username)
     : userProfile?.firstName
-    ? userProfile.firstName
+    ? formatUsername(userProfile.firstName)
     : 'Recruiter';
 
   // Admin/Owner sees all reports, regular users see only theirs
@@ -579,8 +580,8 @@ export const DataHarianPage: React.FC = () => {
         date: todayStr, // Ensure auto set date
         recruiterUsername: autoRecruiterUsername, // Ensure auto set recruiter username
         applicantTelegramUsername: finalTg,
-        // Recruiter result is strictly 'Pending', Admin/Owner can set custom result
-        result: isAdminOrOwner ? formData.result : 'Pending',
+        // Result is strictly 'Pending', Admin/Owner can set custom result later from the list
+        result: 'Pending',
         grup: targetGrup
       };
 
@@ -1030,83 +1031,33 @@ export const DataHarianPage: React.FC = () => {
             );
           })()}
 
-          {/* 6. Results (Recruiter = Auto Pending, Admin/Owner = Pending, ACC, REJECT) */}
+          {/* 6. Results (Auto Pending for Everyone) */}
           <div className="space-y-2">
             <label className="text-xs font-bold tracking-wider text-slate-400 uppercase px-1 flex items-center justify-between">
               <span className="flex items-center gap-2">
                 <UserCheck className="w-3.5 h-3.5 text-blue-400" />
                 <span>Result (Hasil Seleksi)</span>
               </span>
-              {!isAdminOrOwner ? (
-                <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
-                  <Lock className="w-3 h-3" /> Auto Pending
-                </span>
-              ) : (
-                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  Admin / Owner Control
-                </span>
-              )}
+              <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 flex items-center gap-1">
+                <Lock className="w-3 h-3" /> Auto Pending
+              </span>
             </label>
-
-            {!isAdminOrOwner ? (
-              <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-amber-500/30 text-xs flex items-center justify-between gap-3 shadow-inner">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                    <HelpCircle className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="font-extrabold text-white">Status: Pending</p>
-                    <p className="text-[10px] text-slate-400 leading-tight">
-                      Input recruiter otomatis berstatus Pending. Persetujuan (ACC / REJECT) dilakukan oleh Admin atau Owner.
-                    </p>
-                  </div>
-                </div>
-                <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
-                  Pending
-                </span>
-              </div>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, result: 'Pending' })}
-                  className={`py-3 px-3 rounded-2xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
-                    formData.result === 'Pending'
-                      ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20 scale-[1.02]'
-                      : 'bg-amber-500/10 text-amber-300 border-amber-500/20 hover:bg-amber-500/20'
-                  }`}
-                >
+            <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-amber-500/30 text-xs flex items-center justify-between gap-3 shadow-inner">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
                   <HelpCircle className="w-4 h-4" />
-                  <span>Pending</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, result: 'ACC' })}
-                  className={`py-3 px-3 rounded-2xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
-                    formData.result === 'ACC'
-                      ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/20 scale-[1.02]'
-                      : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20 hover:bg-emerald-500/20'
-                  }`}
-                >
-                  <Check className="w-4 h-4" />
-                  <span>ACC</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, result: 'REJECT' })}
-                  className={`py-3 px-3 rounded-2xl text-xs font-black border transition-all flex items-center justify-center gap-1.5 ${
-                    formData.result === 'REJECT'
-                      ? 'bg-rose-600 text-white border-rose-500 shadow-lg shadow-rose-600/20 scale-[1.02]'
-                      : 'bg-rose-500/10 text-rose-300 border-rose-500/20 hover:bg-rose-500/20'
-                  }`}
-                >
-                  <XCircle className="w-4 h-4" />
-                  <span>REJECT</span>
-                </button>
+                </div>
+                <div>
+                  <p className="font-extrabold text-white">Status: Pending</p>
+                  <p className="text-[10px] text-slate-400 leading-tight">
+                    Semua input data otomatis berstatus Pending. Persetujuan (ACC / REJECT) dilakukan secara individual di daftar laporan.
+                  </p>
+                </div>
               </div>
-            )}
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40 shrink-0">
+                Pending
+              </span>
+            </div>
           </div>
 
           {/* 7. Grup (Recruiter = T0 & V0, Admin/Owner = T0, V0, T3) */}

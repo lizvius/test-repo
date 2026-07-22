@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GlassCard } from '../components/common/GlassCard';
 import { StatusBadge } from '../components/common/StatusBadge';
+import { formatUsername } from '../utils/format';
 import { Button } from '../components/common/Button';
 import { useRecruiters } from '../hooks/useRecruiters';
 import { Announcement, SystemSettings, UserRole } from '../types';
@@ -181,7 +182,7 @@ export const OwnerPage: React.FC = () => {
                     <span>{u.firstName} {u.lastName}</span>
                     <StatusBadge role={u.role} size="sm" />
                   </h4>
-                  <span className="text-xs text-sky-400">@{u.username || 'tanpa_username'}</span>
+                  <span className="text-xs text-sky-400">{formatUsername(u.username)}</span>
                 </div>
                 <StatusBadge status={u.status} size="sm" />
               </div>
