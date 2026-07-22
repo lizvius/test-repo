@@ -4,11 +4,17 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 // import { createServer as createViteServer } from 'vite'; // Moved to dynamic import
-import { getOrCreateSpreadsheet, appendApprovedUserToSheet, appendReportToSheet } from './src/server/googleSheets';
+
+// Dynamic import helper for Google Sheets
+async function getGoogleSheets() {
+  return await import('./src/server/googleSheets.js');
+}
+
 
 dotenv.config();
 
 const app = express();
+export default app;
 const PORT = 3000;
 
 // TODO: Configure TELEGRAM_BOT_TOKEN in .env for production verification
@@ -166,6 +172,7 @@ app.post('/api/auth/session-user', authenticateJWT, (req: Request & { user?: unk
 // API Endpoint: Get Google Spreadsheet Link
 app.get('/api/sheets/info', async (_req: Request, res: Response) => {
   try {
+    const { getOrCreateSpreadsheet } = await getGoogleSheets();
     const info = await getOrCreateSpreadsheet();
     res.json({ success: true, data: info });
   } catch (err) {
@@ -183,6 +190,7 @@ app.post('/api/sheets/sync-user', async (req: Request, res: Response) => {
       return;
     }
 
+    const { appendApprovedUserToSheet } = await getGoogleSheets();
     const result = await appendApprovedUserToSheet(user);
     res.json({ success: true, data: result });
   } catch (err) {
@@ -200,6 +208,7 @@ app.post('/api/sheets/sync-report', async (req: Request, res: Response) => {
       return;
     }
 
+    const { appendReportToSheet } = await getGoogleSheets();
     const result = await appendReportToSheet(report);
     res.json({ success: true, data: result });
   } catch (err) {
@@ -603,5 +612,3 @@ async function startServer() {
 if (!process.env.VERCEL) {
   startServer();
 }
-
-export default app;
