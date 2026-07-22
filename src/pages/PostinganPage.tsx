@@ -195,13 +195,22 @@ export const PostinganPage: React.FC = () => {
         reset ? undefined : lastDoc
       );
       
+      const normalizeDate = (d: string) => {
+        if (!d) return '';
+        const parts = d.split('-');
+        if (parts.length !== 3) return d;
+        // If it's DD-MM-YYYY (length 2 for first part), reverse it to YYYY-MM-DD
+        if (parts[0].length === 2) return parts.reverse().join('-');
+        return d;
+      };
+
       const today = getWIBDate();
+      const normalizedToday = normalizeDate(today);
       
       // Filter based on active view
       const filtered = fetchedPosts.filter(p => {
-        const pDate = p.date || '';
-        // Handle both YYYY-MM-DD and DD-MM-YYYY for transition
-        const isToday = pDate === today || pDate === today.split('-').reverse().join('-');
+        const pDate = normalizeDate(p.date || '');
+        const isToday = pDate === normalizedToday;
         
         if (activeView === 'hari_ini') {
           return isToday && !p.archived;
@@ -410,8 +419,10 @@ export const PostinganPage: React.FC = () => {
         
         // Switch view to Today's Posts automatically
         setActiveView('hari_ini');
-        fetchHistory(true);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => {
+          fetchHistory(true);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 800);
       } else {
         throw new Error(result.error || 'Gagal mengirim postingan');
       }
@@ -483,18 +494,23 @@ export const PostinganPage: React.FC = () => {
             }`}
           >
             <Plus className="w-3.5 h-3.5" />
-            Buat Baru
+            Buat
           </button>
           <button
             onClick={() => { setActiveView('hari_ini'); triggerHaptic('selection'); }}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase transition-all ${
+            className={`flex-1 flex flex-col items-center justify-center py-2 rounded-xl transition-all ${
               activeView === 'hari_ini' 
                 ? 'bg-sky-500/10 text-sky-400 border border-sky-500/20 shadow-lg' 
                 : 'text-slate-600 hover:text-slate-400'
             }`}
           >
-            <Calendar className="w-3.5 h-3.5" />
-            Hari Ini
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase">
+              <Calendar className="w-3.5 h-3.5" />
+              Hari Ini
+            </div>
+            <span className="text-[7px] font-bold opacity-60">
+              {getWIBDate().split('-').reverse().join('-')}
+            </span>
           </button>
           <button
             onClick={() => { setActiveView('arsip'); triggerHaptic('selection'); }}

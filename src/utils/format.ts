@@ -61,14 +61,12 @@ export function formatWIBDateTime(dateString?: string | null): string {
  * Gets the current date in YYYY-MM-DD format based on Asia/Jakarta timezone (WIB)
  */
 export function getWIBDate(): string {
-  const options: Intl.DateTimeFormatOptions = {
-    timeZone: 'Asia/Jakarta',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  };
-  const formatter = new Intl.DateTimeFormat('en-CA', options); // en-CA gives YYYY-MM-DD
-  return formatter.format(new Date());
+  const now = new Date();
+  const jakartaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+  const year = jakartaTime.getFullYear();
+  const month = String(jakartaTime.getMonth() + 1).padStart(2, '0');
+  const day = String(jakartaTime.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 /**
