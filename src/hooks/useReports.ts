@@ -10,16 +10,19 @@ export function useReports() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  const role = userProfile?.role;
+  const telegramUserId = telegramUser?.id;
+
   const fetchReports = useCallback(async () => {
-    if (!telegramUser) return;
+    if (!telegramUserId) return;
     setIsLoading(true);
     setError(null);
     try {
       let data: DailyReport[] = [];
-      if (userProfile?.role === 'Admin' || userProfile?.role === 'Owner') {
+      if (role === 'Admin' || role === 'Owner') {
         data = await getAllReports();
       } else {
-        data = await getReportsByTelegramId(String(telegramUser.id));
+        data = await getReportsByTelegramId(String(telegramUserId));
       }
       setReports(data || []);
     } catch (err) {
@@ -27,7 +30,7 @@ export function useReports() {
     } finally {
       setIsLoading(false);
     }
-  }, [telegramUser, userProfile]);
+  }, [telegramUserId, role]);
 
   useEffect(() => {
     fetchReports();

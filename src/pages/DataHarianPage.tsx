@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { GlassCard } from '../components/common/GlassCard';
 import { Input } from '../components/common/Input';
@@ -122,7 +122,10 @@ const parseTelegramUsername = (raw?: string) => {
   };
 };
 
-// Real-time Telegram Username Availability Checker (Ultra-fast parallel check)
+// In-memory cache for ultra-fast Telegram availability checks
+const tgCheckCache = new Map<string, { exists: boolean; title?: string; photoUrl?: string; isSyntaxValid: boolean; message?: string }>();
+
+// Real-time Telegram Username Availability Checker (Ultra-fast parallel check with cache)
 const checkTelegramAvailability = async (cleanUsername: string): Promise<{
   exists: boolean;
   title?: string;
@@ -144,12 +147,17 @@ const checkTelegramAvailability = async (cleanUsername: string): Promise<{
     };
   }
 
+  const lowerKey = cleanUsername.toLowerCase();
+  if (tgCheckCache.has(lowerKey)) {
+    return tgCheckCache.get(lowerKey)!;
+  }
+
   const unavatarUrl = `https://unavatar.io/telegram/${cleanUsername}?fallback=false`;
 
   try {
     const targetUrl = `https://t.me/${cleanUsername}`;
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2200);
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
 
     // Run CORS proxy requests in parallel race/any for sub-second response
     const fetchHtml = async (): Promise<string | null> => {
@@ -182,11 +190,13 @@ const checkTelegramAvailability = async (cleanUsername: string): Promise<{
       const hasPageTitle = html.includes('tgme_page_title') || html.includes('tgme_page_extra');
 
       if (isUserNotFoundMsg || (isNotFoundText && !hasPageTitle)) {
-        return {
+        const res = {
           exists: false,
           isSyntaxValid: true,
           message: `Username @${cleanUsername} TIDAK TERDAFTAR di Telegram.`
         };
+        tgCheckCache.set(lowerKey, res);
+        return res;
       }
 
       // Extract real display name if available
@@ -216,29 +226,35 @@ const checkTelegramAvailability = async (cleanUsername: string): Promise<{
         }
       }
 
-      return {
+      const res = {
         exists: true,
         title: extractedTitle,
         photoUrl: photoUrl || unavatarUrl,
         isSyntaxValid: true,
         message: `Username @${cleanUsername} terdaftar aktif.`
       };
+      tgCheckCache.set(lowerKey, res);
+      return res;
     }
 
     // Fallback if proxy timed out or failed
-    return {
+    const res = {
       exists: true,
       title: `@${cleanUsername}`,
       photoUrl: unavatarUrl,
       isSyntaxValid: true
     };
+    tgCheckCache.set(lowerKey, res);
+    return res;
   } catch {
-    return {
+    const res = {
       exists: true,
       title: `@${cleanUsername}`,
       photoUrl: unavatarUrl,
       isSyntaxValid: true
     };
+    tgCheckCache.set(lowerKey, res);
+    return res;
   }
 };
 
@@ -272,11 +288,11 @@ export const DataHarianPage: React.FC = () => {
     ? userProfile.firstName
     : 'Recruiter';
 
-  // Latest user reports
-  const userReports = reports.filter((r) => r.telegramId === telegramId);
+  // Latest user reports (memoized for performance)
+  const userReports = useMemo(() => reports.filter((r) => r.telegramId === telegramId), [reports, telegramId]);
 
   // Check if submitted report today
-  const hasReportToday = userReports.some((r) => r.date === todayStr);
+  const hasReportToday = useMemo(() => userReports.some((r) => r.date === todayStr), [userReports, todayStr]);
 
   // Form State initialized with auto set values
   const [formData, setFormData] = useState<DailyReportFormData>({
@@ -324,6 +340,27 @@ export const DataHarianPage: React.FC = () => {
       return;
     }
 
+    const lowerKey = cleanTg.toLowerCase();
+    if (tgCheckCache.has(lowerKey)) {
+      const cached = tgCheckCache.get(lowerKey)!;
+      if (!cached.isSyntaxValid) {
+        setTgStatus({ status: 'invalid_syntax', message: cached.message });
+      } else if (!cached.exists) {
+        setTgStatus({
+          status: 'not_found',
+          message: `Username @${cleanTg} TIDAK TERDAFTAR di Telegram.`
+        });
+      } else {
+        setTgStatus({
+          status: 'exists',
+          title: cached.title || `@${cleanTg}`,
+          photoUrl: cached.photoUrl,
+          message: `Username @${cleanTg} terdaftar aktif di Telegram.`
+        });
+      }
+      return;
+    }
+
     setTgStatus({
       status: 'checking',
       message: `Memeriksa keberadaan akun Telegram @${cleanTg}...`
@@ -346,7 +383,7 @@ export const DataHarianPage: React.FC = () => {
           message: `Username @${cleanTg} terdaftar aktif di Telegram.`
         });
       }
-    }, 150);
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [formData.applicantTelegramUsername]);
