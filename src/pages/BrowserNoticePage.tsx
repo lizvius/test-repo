@@ -48,16 +48,6 @@ export const BrowserNoticePage: React.FC = () => {
           >
             Buka Telegram
           </Button>
-          <Button
-            fullWidth
-            variant="secondary"
-            onClick={() => {
-              localStorage.setItem('azurlize_manual_mode', 'true');
-              window.location.reload();
-            }}
-          >
-            Masuk / Daftar Manual (Tanpa Bot)
-          </Button>
         </div>
       </GlassCard>
     </div>

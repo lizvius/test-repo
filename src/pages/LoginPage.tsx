@@ -6,13 +6,10 @@ import { AzurLizeLogo } from '../components/logo/AzurLizeLogo';
 import { useAuth } from '../hooks/useAuth';
 import { createUserProfile, getUserProfile } from '../firebase/services/userService';
 import { RegistrationFormData } from '../types';
-import { User, Mail, Phone, ShieldCheck, CheckCircle2, KeyRound, UserPlus } from 'lucide-react';
+import { User, Mail, Phone, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
   const { telegramUser, refreshProfile } = useAuth();
-  
-  // Tab mode for manual entries: 'register' or 'login'
-  const [activeTab, setActiveTab] = useState<'register' | 'login'>('register');
 
   const [formData, setFormData] = useState<RegistrationFormData>({
     email: '',
@@ -21,41 +18,25 @@ export const LoginPage: React.FC = () => {
     agreedTerms: false
   });
 
-  // Manual inputs if Telegram info isn't auto-detected
-  const [manualId, setManualId] = useState('');
-  const [manualUsername, setManualUsername] = useState('');
-  const [manualFirstName, setManualFirstName] = useState('');
-  const [manualLastName, setManualLastName] = useState('');
-
-  // Login inputs for existing accounts
-  const [loginId, setLoginId] = useState('');
-
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Determine actual values (auto-detected has priority)
-  const isAutoDetected = telegramUser !== null;
-  const telegramId = isAutoDetected ? String(telegramUser.id) : manualId;
-  const username = isAutoDetected ? (telegramUser?.username || '') : manualUsername;
-  const firstName = isAutoDetected ? (telegramUser?.first_name || '') : manualFirstName;
-  const lastName = isAutoDetected ? (telegramUser?.last_name || '') : manualLastName;
-  const photoUrl = isAutoDetected ? (telegramUser?.photo_url || '') : '';
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!telegramId.trim()) {
-      setError('ID Telegram wajib diisi.');
+
+    if (!telegramUser) {
+      setError('Pengguna Telegram tidak terdeteksi. Buka aplikasi dari Telegram Bot.');
       return;
     }
 
-    if (!username.trim()) {
-      setError('Username Telegram wajib diisi.');
-      return;
-    }
+    const telegramId = String(telegramUser.id);
+    const username = (telegramUser.username || '').trim().replace(/^@/, '');
+    const firstName = (telegramUser.first_name || '').trim();
+    const lastName = (telegramUser.last_name || '').trim();
+    const photoUrl = telegramUser.photo_url || '';
 
-    if (!firstName.trim()) {
-      setError('Nama Depan wajib diisi.');
+    if (!telegramId) {
+      setError('ID Telegram tidak valid.');
       return;
     }
 
@@ -73,80 +54,30 @@ export const LoginPage: React.FC = () => {
     setError(null);
 
     try {
-      const cleanTelegramId = telegramId.trim();
-      const cleanUsername = username.trim().replace(/^@/, '');
-
       // Check if profile already exists to prevent duplication
-      const existingProfile = await getUserProfile(cleanTelegramId);
+      const existingProfile = await getUserProfile(telegramId);
       if (existingProfile) {
-        throw new Error('ID Telegram ini sudah terdaftar. Silakan pindah ke tab "Masuk Akun" untuk masuk.');
+        throw new Error('ID Telegram ini sudah terdaftar. Menghubungkan akun...');
       }
 
       await createUserProfile({
-        telegramId: cleanTelegramId,
-        username: cleanUsername,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        telegramId,
+        username,
+        firstName,
+        lastName,
         photoUrl,
-        email: formData.email,
-        whatsapp: formData.whatsapp,
-        akun9Kucing: formData.akun9Kucing,
+        email: formData.email.trim(),
+        whatsapp: formData.whatsapp.trim(),
+        akun9Kucing: formData.akun9Kucing.trim(),
         role: 'Recruiter',
         status: 'Pending',
         approved: false
       });
 
-      // Save session in localStorage for standard browsers/non-detected environments
-      const manualUser = {
-        id: Number(cleanTelegramId),
-        first_name: firstName.trim(),
-        last_name: lastName.trim(),
-        username: cleanUsername,
-        photo_url: photoUrl
-      };
-      localStorage.setItem('azurlize_user_session', JSON.stringify(manualUser));
-
-      // Reload to let AuthContext grab the session
-      window.location.reload();
+      // Instantly refresh profile in AuthContext to transition to pending page
+      await refreshProfile();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal mengirim pendaftaran.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!loginId.trim()) {
-      setError('Mohon masukkan ID Telegram Anda.');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const cleanLoginId = loginId.trim();
-      const profile = await getUserProfile(cleanLoginId);
-      
-      if (!profile) {
-        throw new Error('ID Telegram tidak terdaftar. Silakan mendaftar sebagai Recruiter Baru terlebih dahulu.');
-      }
-
-      // Store persistent session
-      const manualUser = {
-        id: Number(profile.telegramId),
-        first_name: profile.firstName,
-        last_name: profile.lastName || '',
-        username: profile.username || '',
-        photo_url: profile.photoUrl || ''
-      };
-      localStorage.setItem('azurlize_user_session', JSON.stringify(manualUser));
-
-      // Reload to initialize user dashboard
-      window.location.reload();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal masuk sesi.');
     } finally {
       setIsLoading(false);
     }
@@ -173,142 +104,34 @@ export const LoginPage: React.FC = () => {
             </div>
           )}
 
-          {/* Tab Selector - ONLY shown if Telegram user is NOT auto-detected */}
-          {!isAutoDetected && (
-            <div className="flex bg-slate-900/95 p-1 rounded-2xl border border-slate-800">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('register');
-                  setError(null);
-                }}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'register'
-                    ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white shadow-md shadow-blue-500/10'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <UserPlus className="w-3.5 h-3.5" /> Daftar Recruiter
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('login');
-                  setError(null);
-                }}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  activeTab === 'login'
-                    ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white shadow-md shadow-blue-500/10'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <KeyRound className="w-3.5 h-3.5" /> Masuk Akun
-              </button>
-            </div>
-          )}
-
-          {/* MODE: REGISTER */}
-          {(!isAutoDetected && activeTab === 'login') ? (
-            /* MODE: LOGIN MANUAL */
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="bg-amber-500/10 border border-amber-500/20 p-3 rounded-2xl text-[11px] text-amber-300 leading-relaxed">
-                ℹ️ Masukkan ID Telegram Anda yang telah terdaftar sebelumnya untuk langsung masuk ke sesi.
-              </div>
-
-              <Input
-                label="ID Telegram Anda (Hanya Angka)"
-                type="text"
-                placeholder="Contoh: 11223344"
-                icon={<User className="w-4 h-4" />}
-                value={loginId}
-                onChange={(e) => setLoginId(e.target.value.replace(/\D/g, ''))}
-                required
-              />
-
-              <Button
-                type="submit"
-                fullWidth
-                isLoading={isLoading}
-                icon={<KeyRound className="w-5 h-5" />}
-                className="mt-4"
-              >
-                Masuk Sesi
-              </Button>
-            </form>
-          ) : (
+          {telegramUser ? (
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Telegram User Status Header */}
-              {isAutoDetected ? (
-                /* Auto-detected success card */
-                <div className="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 flex items-center gap-3">
-                  {photoUrl ? (
-                    <img
-                      src={photoUrl}
-                      alt="Telegram Photo"
-                      className="w-12 h-12 rounded-xl object-cover border border-blue-500/40"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 flex items-center justify-center text-white font-bold text-lg">
-                      {(firstName[0] || 'U').toUpperCase()}
-                    </div>
-                  )}
-                  <div className="flex flex-col text-left overflow-hidden">
-                    <span className="text-sm font-bold text-white truncate">
-                      {firstName} {lastName}
-                    </span>
-                    <span className="text-xs text-sky-400 font-medium">
-                      @{username || 'tanpa_username'} &bull; ID: {telegramId}
-                    </span>
-                    <span className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Terdeteksi Otomatis (Telegram WebApp)
-                    </span>
+              {/* Auto-detected Telegram User Card */}
+              <div className="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 flex items-center gap-3">
+                {telegramUser.photo_url ? (
+                  <img
+                    src={telegramUser.photo_url}
+                    alt="Telegram Photo"
+                    referrerPolicy="no-referrer"
+                    className="w-12 h-12 rounded-xl object-cover border border-blue-500/40"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-sky-400 flex items-center justify-center text-white font-bold text-lg">
+                    {((telegramUser.first_name || 'U')[0] || 'U').toUpperCase()}
                   </div>
+                )}
+                <div className="flex flex-col text-left overflow-hidden">
+                  <span className="text-sm font-bold text-white truncate">
+                    {telegramUser.first_name} {telegramUser.last_name || ''}
+                  </span>
+                  <span className="text-xs text-sky-400 font-medium">
+                    @{telegramUser.username || 'tanpa_username'} &bull; ID: {telegramUser.id}
+                  </span>
+                  <span className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Terdeteksi Otomatis (Telegram WebApp)
+                  </span>
                 </div>
-              ) : (
-                /* Manual Inputs Alert & Fields */
-                <div className="space-y-3.5">
-                  <div className="bg-blue-500/10 border border-blue-500/20 p-3 rounded-2xl text-[11px] text-blue-300 leading-relaxed">
-                    💡 Hubungkan akun Telegram Anda secara manual dengan mengisi ID dan Username Anda di bawah.
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input
-                      label="ID Telegram (Angka)"
-                      type="text"
-                      placeholder="Contoh: 54123456"
-                      value={manualId}
-                      onChange={(e) => setManualId(e.target.value.replace(/\D/g, ''))}
-                      required
-                    />
-                    <Input
-                      label="Username Telegram"
-                      type="text"
-                      placeholder="Contoh: ghrryuuka"
-                      value={manualUsername}
-                      onChange={(e) => setManualUsername(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <Input
-                      label="Nama Depan"
-                      type="text"
-                      placeholder="Nama Depan"
-                      value={manualFirstName}
-                      onChange={(e) => setManualFirstName(e.target.value)}
-                      required
-                    />
-                    <Input
-                      label="Nama Belakang"
-                      type="text"
-                      placeholder="Nama Belakang (Opsional)"
-                      value={manualLastName}
-                      onChange={(e) => setManualLastName(e.target.value)}
-                    />
-                  </div>
-                </div>
-              )}
+              </div>
 
               {/* User Input Fields */}
               <Input
@@ -364,6 +187,18 @@ export const LoginPage: React.FC = () => {
                 Kirim Pendaftaran
               </Button>
             </form>
+          ) : (
+            <div className="text-center py-6 space-y-4">
+              <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mx-auto text-rose-400 text-3xl">
+                ⚠️
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-white">Akun Telegram Tidak Terdeteksi</p>
+                <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                  Sistem tidak dapat mendeteksi kredensial Telegram Anda. Silakan buka aplikasi ini secara resmi melalui Telegram Bot Anda.
+                </p>
+              </div>
+            </div>
           )}
         </GlassCard>
       </div>

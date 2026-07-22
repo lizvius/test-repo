@@ -33,8 +33,7 @@ const AppContent: React.FC = () => {
   }
 
   // If opened in browser without Telegram WebApp context
-  const isManualMode = localStorage.getItem('azurlize_manual_mode') === 'true';
-  if (!isTelegramContext && !isAuthenticated && !isManualMode) {
+  if (!isTelegramContext && !isAuthenticated) {
     return <BrowserNoticePage />;
   }
 
