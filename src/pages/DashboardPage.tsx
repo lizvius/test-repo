@@ -60,11 +60,11 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ setActiveTab }) =>
     {
       id: 'data_harian' as TabType,
       title: 'Data Harian',
-      desc: 'Timer 24 jam & data baru',
+      desc: 'Siklus data harian baru',
       icon: CalendarClock,
       color: 'from-emerald-400 via-teal-500 to-sky-600',
       glow: 'shadow-emerald-500/20 hover:shadow-emerald-500/40',
-      badge: '24H Timer'
+      badge: 'Harian'
     },
     {
       id: 'laporan' as TabType,

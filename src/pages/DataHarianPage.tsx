@@ -145,22 +145,22 @@ export const DataHarianPage: React.FC = () => {
           <div className="p-2 rounded-2xl bg-sky-500/10 text-sky-400 border border-sky-500/20">
             <CalendarClock className="w-5 h-5" />
           </div>
-          <span>Data Harian & Timer 24 Jam</span>
+          <span>Data Harian</span>
         </h2>
         <p className="text-xs text-slate-400">
-          Kelola data harian recruiter dengan siklus pembaruan timer 24 jam otomatis.
+          Kelola data harian recruiter dengan siklus pembaruan otomatis setiap pergantian hari.
         </p>
       </div>
 
-      {/* 24-Hour Timer Widget */}
+      {/* 24-Hour Countdown Widget */}
       <GlassCard className="relative overflow-hidden border-sky-500/30 bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-blue-950/70 p-5 shadow-2xl">
         <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-500/30">
-              <Timer className="w-5 h-5 animate-pulse" />
+              <Clock className="w-5 h-5 animate-pulse" />
             </div>
             <div>
-              <h3 className="text-sm font-extrabold text-white">Timer Harian Real-time</h3>
+              <h3 className="text-sm font-extrabold text-white">Waktu Sisa Hari Ini</h3>
               <p className="text-[10px] text-slate-400 font-medium">
                 {!hasReportToday ? 'Belum isi data hari ini — Silakan input' : 'Data hari ini sudah tercatat & tersimpan'}
               </p>
@@ -398,7 +398,7 @@ export const DataHarianPage: React.FC = () => {
             icon={<Sparkles className="w-4 h-4" />}
             className="mt-2"
           >
-            {isCycleExpired ? 'Simpan Data Harian Baru (Reset 24 Jam)' : 'Perbarui Data Harian'}
+            {isCycleExpired ? 'Simpan Data Harian Baru' : 'Perbarui Data Harian'}
           </Button>
         </form>
       </GlassCard>

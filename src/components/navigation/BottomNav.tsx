@@ -22,7 +22,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab })
 
   const navItems = [
     { id: 'beranda' as TabType, label: 'Beranda', icon: LayoutGrid },
-    { id: 'data_harian' as TabType, label: 'Data 24H', icon: CalendarClock },
+    { id: 'data_harian' as TabType, label: 'Data Harian', icon: CalendarClock },
     { id: 'laporan' as TabType, label: 'Laporan', icon: ClipboardPen },
     { id: 'riwayat' as TabType, label: 'Riwayat', icon: Clock3 },
     { id: 'profil' as TabType, label: 'Profil', icon: UserCheck }
