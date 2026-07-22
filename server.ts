@@ -1,4 +1,5 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+import type { Request, Response } from 'express';
 import path from 'path';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
@@ -7,14 +8,22 @@ import dotenv from 'dotenv';
 
 // Dynamic import helper for Google Sheets
 async function getGoogleSheets() {
+  if (process.env.VERCEL) {
+    return {
+      getOrCreateSpreadsheet: async () => ({ id: 'stub', url: 'stub' }),
+      appendApprovedUserToSheet: async () => ({}),
+      appendReportToSheet: async () => ({})
+    };
+  }
   return await import('./src/server/googleSheets.js');
 }
 
 
-dotenv.config();
+if (!process.env.VERCEL) {
+  dotenv.config();
+}
 
 const app = express();
-export default app;
 const PORT = 3000;
 
 // TODO: Configure TELEGRAM_BOT_TOKEN in .env for production verification
@@ -612,3 +621,5 @@ async function startServer() {
 if (!process.env.VERCEL) {
   startServer();
 }
+
+export default app;
