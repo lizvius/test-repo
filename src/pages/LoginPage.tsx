@@ -55,7 +55,12 @@ export const LoginPage: React.FC = () => {
 
     try {
       // Check if profile already exists to prevent duplication
-      const existingProfile = await getUserProfile(telegramId);
+      // Use a faster check for registration to avoid hanging on slow networks
+      const existingProfile = await getUserProfile(telegramId).catch(err => {
+        console.warn('Initial profile check failed, proceeding with caution:', err);
+        return null;
+      });
+
       if (existingProfile) {
         throw new Error('ID Telegram ini sudah terdaftar. Menghubungkan akun...');
       }
@@ -77,7 +82,13 @@ export const LoginPage: React.FC = () => {
       // Instantly refresh profile in AuthContext to transition to pending page
       await refreshProfile();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal mengirim pendaftaran.');
+      const msg = err instanceof Error ? err.message : 'Gagal mengirim pendaftaran.';
+      // Filter out technical jargon from the message if it's still JSON-like
+      if (msg.includes('{') && msg.includes('}')) {
+        setError('Gagal menghubungkan ke server. Silakan pastikan koneksi internet Anda stabil dan coba lagi.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -98,9 +109,17 @@ export const LoginPage: React.FC = () => {
 
         <GlassCard className="space-y-5 border-blue-500/20">
           {error && (
-            <div className="bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs p-3 rounded-2xl flex items-center gap-2">
-              <span className="font-bold">⚠️</span>
-              <span>{error}</span>
+            <div className="bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs p-3 rounded-2xl flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="font-bold">⚠️</span>
+                <span>{error}</span>
+              </div>
+              <button 
+                onClick={() => window.location.reload()}
+                className="text-sky-400 font-bold hover:underline self-end"
+              >
+                Muat Ulang Halaman
+              </button>
             </div>
           )}
 

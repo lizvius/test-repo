@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeFirestore, Firestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 
 // TODO: Configure your Firebase Config using environment variables or replace below with your Firebase Project Credentials
@@ -12,6 +12,11 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:1234567890:web:abcdef123456789'
 };
 
+// Log warning if using placeholders
+if (firebaseConfig.apiKey.includes('YOUR_FIREBASE_API_KEY_HERE')) {
+  console.warn('[Firebase] Warning: Using placeholder API Key. Please set VITE_FIREBASE_API_KEY in environment variables.');
+}
+
 // Initialize Firebase App lazily or reuse existing instance
 let app: FirebaseApp;
 if (!getApps().length) {
@@ -20,8 +25,11 @@ if (!getApps().length) {
   app = getApp();
 }
 
-// Export Firestore database and Auth instances
-export const db: Firestore = getFirestore(app);
+// Export Firestore database with experimental forceLongPolling for better Telegram WebApp compatibility
+export const db: Firestore = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
 export const auth: Auth = getAuth(app);
 
 export default app;
