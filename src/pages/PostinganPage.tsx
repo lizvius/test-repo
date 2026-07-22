@@ -17,8 +17,6 @@ import {
   Plus,
   Link as LinkIcon,
   Globe,
-  Facebook,
-  Twitter,
   Hash,
   History,
   Archive,
@@ -27,15 +25,78 @@ import {
   Calendar,
   Clock,
   Sparkles,
-  Timer
+  Timer,
+  ShieldCheck,
+  AlertTriangle
 } from 'lucide-react';
 
-type SocialPlatform = 'Facebook' | 'X' | 'Other';
+type SocialPlatform = 'Facebook' | 'X (Twitter)' | 'Instagram' | 'TikTok' | 'Threads' | 'WhatsApp' | 'Telegram' | 'Lainnya';
 
 interface SocialLink {
   url: string;
   platform: SocialPlatform;
 }
+
+// Channel Platform Real SVG Icons (Aligned with DataHarianPage)
+const ChannelPlatformIcon: React.FC<{ id: string; className?: string }> = ({ id, className = "w-3.5 h-3.5 shrink-0" }) => {
+  switch (id) {
+    case 'Facebook':
+      return (
+        <svg className={`${className} fill-current`} viewBox="0 0 24 24">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      );
+    case 'X (Twitter)':
+      return (
+        <svg className={`${className} fill-current`} viewBox="0 0 24 24">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      );
+    case 'Threads':
+      return (
+        <svg className={`${className} fill-current`} viewBox="0 0 24 24">
+          <path d="M12.186 24c-3.142 0-5.782-1.002-7.587-2.87-1.848-1.91-2.599-4.57-2.599-7.728 0-3.322.95-6.07 2.825-8.17C6.632 3.123 9.29 2 12.723 2c3.488 0 6.208 1.14 8.084 3.388 1.583 1.897 2.392 4.417 2.392 7.488 0 .61-.03 1.256-.09 1.933h-3.411c.045-.487.068-.962.068-1.428 0-2.22-.57-3.992-1.693-5.27-1.196-1.36-2.937-2.05-5.183-2.05-2.298 0-4.093.758-5.337 2.252-1.22 1.466-1.838 3.513-1.838 6.084 0 2.327.534 4.254 1.587 5.727 1.055 1.475 2.585 2.223 4.548 2.223 1.623 0 2.946-.43 3.931-1.28.932-.803 1.488-1.922 1.654-3.328h-5.26v-3.072h8.777c.074.526.111 1.077.111 1.652 0 2.457-.833 4.475-2.477 6.002C18.667 23.23 15.808 24 12.186 24z" />
+        </svg>
+      );
+    case 'Instagram':
+      return (
+        <svg className={`${className} fill-current`} viewBox="0 0 24 24">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+        </svg>
+      );
+    case 'TikTok':
+      return (
+        <svg className={`${className} fill-current`} viewBox="0 0 24 24">
+          <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.82.57-1.31 1.54-1.33 2.54-.02 1.08.46 2.15 1.28 2.84 1.01.83 2.47.98 3.63.4 1.03-.51 1.69-1.57 1.78-2.72.08-2.71.04-5.43.05-8.15-.01-2.9-.01-5.8 0-8.7z" />
+        </svg>
+      );
+    case 'Telegram':
+      return (
+        <svg className={`${className} fill-current`} viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.12.02-1.96 1.25-5.54 3.69-.52.36-1 .53-1.42.52-.47-.01-1.37-.26-2.03-.48-.82-.27-1.47-.42-1.42-.88.03-.25.38-.51 1.07-.78 4.18-1.82 6.97-3.02 8.37-3.61 3.99-1.66 4.82-1.95 5.36-1.96.12 0 .38.03.55.17.14.12.18.28.2.45-.01.07.01.23 0 .39z" />
+        </svg>
+      );
+    case 'WhatsApp':
+      return (
+        <svg className={`${className} fill-current`} viewBox="0 0 24 24">
+          <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+        </svg>
+      );
+    default:
+      return <Globe className={`${className}`} />;
+  }
+};
+
+const CHANNELS = [
+  { id: 'Facebook', label: 'Facebook', color: 'text-blue-400 border-blue-500/20 bg-blue-500/5', active: 'bg-blue-600 text-white border-blue-500' },
+  { id: 'X (Twitter)', label: 'X (Twitter)', color: 'text-slate-200 border-slate-700 bg-slate-800/20', active: 'bg-slate-200 text-slate-900 border-white' },
+  { id: 'Threads', label: 'Threads', color: 'text-white border-zinc-700 bg-zinc-800/20', active: 'bg-white text-zinc-950 border-white' },
+  { id: 'Instagram', label: 'Instagram', color: 'text-pink-400 border-pink-500/20 bg-pink-500/5', active: 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-transparent' },
+  { id: 'TikTok', label: 'TikTok', color: 'text-cyan-400 border-cyan-400/20 bg-cyan-400/5', active: 'bg-cyan-500 text-slate-950 border-cyan-400' },
+  { id: 'WhatsApp', label: 'WhatsApp', color: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/5', active: 'bg-emerald-600 text-white border-emerald-500' },
+  { id: 'Telegram', label: 'Telegram', color: 'text-sky-400 border-sky-400/20 bg-sky-400/5', active: 'bg-sky-500 text-white border-sky-400' },
+  { id: 'Lainnya', label: 'Lainnya', color: 'text-slate-400 border-slate-700 bg-slate-800/20', active: 'bg-slate-700 text-white border-slate-600' },
+];
 
 export const PostinganPage: React.FC = () => {
   const { userProfile, telegramUser } = useAuth();
@@ -174,10 +235,21 @@ export const PostinganPage: React.FC = () => {
     const newLinks = [...links];
     let platform = newLinks[index].platform;
     
-    if (url.includes('facebook.com') || url.includes('fb.com') || url.includes('fb.watch')) {
+    const lowUrl = url.toLowerCase();
+    if (lowUrl.includes('facebook.com') || lowUrl.includes('fb.com') || lowUrl.includes('fb.watch')) {
       platform = 'Facebook';
-    } else if (url.includes('x.com') || url.includes('twitter.com')) {
-      platform = 'X';
+    } else if (lowUrl.includes('x.com') || lowUrl.includes('twitter.com')) {
+      platform = 'X (Twitter)';
+    } else if (lowUrl.includes('instagram.com') || lowUrl.includes('instagr.am')) {
+      platform = 'Instagram';
+    } else if (lowUrl.includes('tiktok.com')) {
+      platform = 'TikTok';
+    } else if (lowUrl.includes('threads.net')) {
+      platform = 'Threads';
+    } else if (lowUrl.includes('wa.me') || lowUrl.includes('whatsapp.com')) {
+      platform = 'WhatsApp';
+    } else if (lowUrl.includes('t.me') || lowUrl.includes('telegram.me')) {
+      platform = 'Telegram';
     }
     
     newLinks[index] = { url, platform };
@@ -191,14 +263,6 @@ export const PostinganPage: React.FC = () => {
     triggerHaptic('selection');
   };
 
-  const getPlatformIcon = (platform: SocialPlatform) => {
-    switch (platform) {
-      case 'Facebook': return <Facebook className="w-3.5 h-3.5 text-blue-400" />;
-      case 'X': return <Twitter className="w-3.5 h-3.5 text-slate-200" />;
-      default: return <Globe className="w-3.5 h-3.5 text-emerald-400" />;
-    }
-  };
-
   const handleSubmit = async () => {
     const validLinks = links.filter(l => l.url.trim() !== '');
     if (validLinks.length === 0) {
@@ -208,6 +272,21 @@ export const PostinganPage: React.FC = () => {
 
     if (images.length === 0) {
       setStatus({ type: 'error', message: 'Setidaknya upload 1 gambar.' });
+      return;
+    }
+
+    // Duplicate Check
+    const today = new Date().toISOString().split('T')[0];
+    const todayPosts = posts.filter(p => p.date === today);
+    const existingLinks = new Set(todayPosts.flatMap(p => p.links));
+    
+    const duplicates = validLinks.filter(l => existingLinks.has(l.url));
+    if (duplicates.length > 0) {
+      setStatus({ 
+        type: 'error', 
+        message: `Terdapat ${duplicates.length} link yang sudah pernah dikirim hari ini. Mohon hapus duplikasi.` 
+      });
+      triggerHaptic('notification', 'error');
       return;
     }
 
@@ -384,42 +463,61 @@ export const PostinganPage: React.FC = () => {
 
               {/* Links Section */}
               <div className="space-y-3">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center gap-2">
-                  <LinkIcon className="w-3.5 h-3.5 text-sky-400" />
-                  Daftar Link & Platform
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider px-1 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <LinkIcon className="w-3.5 h-3.5 text-sky-400" />
+                    Daftar Link & Platform
+                  </div>
+                  <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> Anti Duplicate
+                  </span>
                 </label>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {links.map((link, idx) => (
-                    <div key={idx} className="space-y-2 p-3 rounded-2xl bg-slate-950/40 border border-slate-800/50 shadow-inner group focus-within:border-sky-500/30 transition-all">
+                    <div key={idx} className="space-y-3 p-4 rounded-3xl bg-slate-950/40 border border-slate-800/50 shadow-inner group focus-within:border-sky-500/30 transition-all">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-black text-slate-600 bg-slate-900 px-2 py-0.5 rounded-md">
+                        <span className="text-[10px] font-black text-slate-500 bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
                           #{startNumber + idx}
                         </span>
-                        <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
-                          {(['Facebook', 'X', 'Other'] as SocialPlatform[]).map(p => (
-                            <button
-                              key={p}
-                              onClick={() => updatePlatform(idx, p)}
-                              className={`px-2 py-1 rounded-md text-[9px] font-black uppercase transition-all flex items-center gap-1 ${
-                                link.platform === p 
-                                  ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' 
-                                  : 'text-slate-600 hover:text-slate-400'
-                              }`}
-                            >
-                              {getPlatformIcon(p)}
-                              {p === 'Other' ? 'Lain' : p}
-                            </button>
-                          ))}
+                        
+                        <div className="flex items-center gap-1">
+                          <span className="text-[8px] font-black text-slate-600 uppercase tracking-tighter mr-1">Platform:</span>
+                          <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 border ${
+                            CHANNELS.find(c => c.id === link.platform)?.color || 'text-slate-400 border-slate-800 bg-slate-900'
+                          }`}>
+                            <ChannelPlatformIcon id={link.platform} />
+                            {link.platform}
+                          </span>
                         </div>
                       </div>
+                      
                       <div className="relative">
                         <input
                           type="text"
                           value={link.url}
                           onChange={(e) => updateLink(idx, e.target.value)}
                           placeholder="Paste link postingan..."
-                          className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 focus:border-sky-500/50 text-white text-[11px] outline-none transition-all placeholder:text-slate-700 font-medium"
+                          className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 focus:border-sky-500/50 text-white text-xs outline-none transition-all placeholder:text-slate-700 font-medium"
                         />
+                      </div>
+
+                      {/* Manual Platform Overrides (Mini Grid) */}
+                      <div className="grid grid-cols-4 gap-1.5">
+                        {CHANNELS.map(p => {
+                          const isSelected = link.platform === p.id;
+                          return (
+                            <button
+                              key={p.id}
+                              onClick={() => updatePlatform(idx, p.id as SocialPlatform)}
+                              className={`py-1.5 rounded-lg text-[8px] font-black uppercase transition-all flex flex-col items-center justify-center gap-1 border ${
+                                isSelected ? p.active : 'text-slate-600 border-slate-800/50 bg-slate-900/50 hover:bg-slate-900'
+                              }`}
+                            >
+                              <ChannelPlatformIcon id={p.id} className="w-3 h-3" />
+                              <span className="truncate w-full px-1">{p.id === 'X (Twitter)' ? 'X' : p.id}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -452,7 +550,7 @@ export const PostinganPage: React.FC = () => {
                 {images.length === 0 ? (
                   <div 
                     onClick={() => fileInputRef.current?.click()}
-                    className="group cursor-pointer aspect-video rounded-2xl border-2 border-dashed border-slate-800 hover:border-sky-500/30 bg-slate-950/30 flex flex-col items-center justify-center gap-3 transition-all active:scale-[0.98]"
+                    className="group cursor-pointer aspect-video rounded-3xl border-2 border-dashed border-slate-800 hover:border-sky-500/30 bg-slate-950/30 flex flex-col items-center justify-center gap-3 transition-all active:scale-[0.98]"
                   >
                     <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 group-hover:text-sky-400 group-hover:border-sky-500/30 transition-colors shadow-lg">
                       <Upload className="w-6 h-6" />
@@ -472,7 +570,7 @@ export const PostinganPage: React.FC = () => {
                           initial={{ opacity: 0, scale: 0.8 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.8 }}
-                          className="relative aspect-square rounded-xl overflow-hidden border border-slate-800 bg-slate-900 group shadow-md"
+                          className="relative aspect-square rounded-2xl overflow-hidden border border-slate-800 bg-slate-900 group shadow-md"
                         >
                           <img src={img} alt="Preview" className="w-full h-full object-cover" />
                           <button
@@ -488,7 +586,7 @@ export const PostinganPage: React.FC = () => {
                     {images.length < 10 && (
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="aspect-square rounded-xl border-2 border-dashed border-slate-800 hover:border-sky-500/30 bg-slate-950/30 flex flex-col items-center justify-center gap-1.5 transition-all text-slate-500 hover:text-sky-400 group"
+                        className="aspect-square rounded-2xl border-2 border-dashed border-slate-800 hover:border-sky-500/30 bg-slate-950/30 flex flex-col items-center justify-center gap-1.5 transition-all text-slate-500 hover:text-sky-400 group"
                       >
                         <Plus className="w-6 h-6 group-hover:scale-110 transition-transform" />
                         <span className="text-[10px] font-black uppercase tracking-tighter">Tambah</span>
@@ -534,12 +632,16 @@ export const PostinganPage: React.FC = () => {
             {/* Tips Section */}
             <div className="px-4 py-3 bg-sky-500/5 rounded-2xl border border-sky-500/10">
               <h4 className="text-[10px] font-black text-sky-400 uppercase tracking-widest flex items-center gap-1.5 mb-1.5">
-                <AlertCircle className="w-3 h-3" /> Petunjuk
+                <AlertTriangle className="w-3 h-3 text-amber-500" /> Pentunjuk Penting
               </h4>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
                   <span className="w-1 h-1 rounded-full bg-sky-500 mt-1.5 shrink-0" />
-                  Bot akan mengirim sebagai Media Group (Album) berisi 10 gambar ke grup Telegram.
+                  Sistem akan **otomatis mendeteksi** platform berdasarkan link yang Anda masukkan.
+                </li>
+                <li className="text-[10px] text-slate-400 flex items-start gap-2 leading-relaxed">
+                  <span className="w-1 h-1 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                  Pengecekan **Duplikasi** aktif: Anda tidak dapat mengirim link yang sama dua kali dalam hari yang sama.
                 </li>
               </ul>
             </div>
@@ -586,8 +688,8 @@ export const PostinganPage: React.FC = () => {
                     </div>
                     <div className="flex -space-x-1.5">
                       {Array.from(new Set(post.platforms)).map((p, i) => (
-                        <div key={i} className="w-6 h-6 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center shadow-md">
-                          {getPlatformIcon(p as SocialPlatform)}
+                        <div key={i} className="w-7 h-7 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center shadow-lg">
+                          <ChannelPlatformIcon id={p} className={`w-3.5 h-3.5 ${CHANNELS.find(c => c.id === p)?.color?.split(' ')[0] || 'text-white'}`} />
                         </div>
                       ))}
                     </div>
@@ -602,9 +704,12 @@ export const PostinganPage: React.FC = () => {
                         rel="noopener noreferrer"
                         className="flex items-center justify-between p-2 rounded-xl bg-slate-950/50 hover:bg-slate-900 border border-slate-800/50 transition-colors group"
                       >
-                        <span className="text-[10px] text-slate-400 font-medium truncate max-w-[200px]">
-                          {link}
-                        </span>
+                        <div className="flex items-center gap-2 truncate">
+                          <ChannelPlatformIcon id={post.platforms[i]} className={`w-3 h-3 shrink-0 ${CHANNELS.find(c => c.id === post.platforms[i])?.color?.split(' ')[0] || 'text-slate-500'}`} />
+                          <span className="text-[10px] text-slate-400 font-medium truncate max-w-[200px]">
+                            {link}
+                          </span>
+                        </div>
                         <ExternalLink className="w-3 h-3 text-slate-600 group-hover:text-sky-400 transition-colors" />
                       </a>
                     ))}
