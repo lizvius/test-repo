@@ -87,6 +87,38 @@ const ChannelPlatformIcon: React.FC<{ id: string; className?: string }> = ({ id,
   }
 };
 
+// Telegram Username Parser Helper
+const parseTelegramUsername = (raw?: string) => {
+  if (!raw) return { clean: '', formatted: '', url: '' };
+  let clean = raw.trim();
+
+  // Extract from full URLs or links like https://t.me/username, t.me/username, telegram.me/username, tg://resolve?domain=username
+  if (clean.includes('t.me/') || clean.includes('telegram.me/')) {
+    const match = clean.match(/(?:t\.me|telegram\.me)\/([a-zA-Z0-9_]+)/i);
+    if (match && match[1]) {
+      clean = match[1];
+    }
+  } else if (clean.includes('tg://')) {
+    const match = clean.match(/domain=([a-zA-Z0-9_]+)/i);
+    if (match && match[1]) {
+      clean = match[1];
+    }
+  }
+
+  // Remove query params, hash or trailing slash
+  clean = clean.split('?')[0].split('#')[0].replace(/\/$/, '');
+  // Strip leading @ or slashes or plus
+  clean = clean.replace(/^[@/+]+/, '');
+
+  if (!clean) return { clean: '', formatted: '', url: '' };
+
+  return {
+    clean,
+    formatted: `@${clean}`,
+    url: `https://t.me/${clean}`
+  };
+};
+
 // Channel Platforms with Colors & Active Styles
 const CHANNELS = [
   { id: 'Facebook', label: 'FB (Facebook)', color: 'bg-blue-600/20 border-blue-500/40 text-blue-400', activeBg: 'bg-blue-600 text-white' },
@@ -209,10 +241,14 @@ export const DataHarianPage: React.FC = () => {
     }
 
     try {
+      const parsedTg = parseTelegramUsername(formData.applicantTelegramUsername);
+      const finalTg = parsedTg.formatted || formData.applicantTelegramUsername.trim();
+
       await submitReport({
         ...formData,
         date: todayStr, // Ensure auto set date
         recruiterUsername: autoRecruiterUsername, // Ensure auto set recruiter username
+        applicantTelegramUsername: finalTg,
         // Recruiter result is strictly 'Pending', Admin/Owner can set custom result
         result: isAdminOrOwner ? formData.result : 'Pending',
         // Recruiter can only select T0 or V0, T3 is for Admin/Owner
@@ -431,15 +467,26 @@ export const DataHarianPage: React.FC = () => {
               <Input
                 label="Username Telegram Pelamar"
                 type="text"
-                placeholder="Contoh: @username_pelamar"
+                placeholder="Contoh: @username_pelamar atau t.me/..."
                 icon={<Send className="w-4 h-4 text-sky-400" />}
                 value={formData.applicantTelegramUsername}
                 onChange={(e) => {
-                  let val = e.target.value.trim();
-                  if (val && !val.startsWith('@')) {
-                    val = `@${val}`;
+                  const val = e.target.value;
+                  // Auto detect if user pasted link or full URL
+                  if (val.includes('t.me') || val.includes('telegram.me') || val.includes('http') || val.includes('tg://')) {
+                    const parsed = parseTelegramUsername(val);
+                    setFormData({ ...formData, applicantTelegramUsername: parsed.formatted || val });
+                  } else {
+                    setFormData({ ...formData, applicantTelegramUsername: val });
                   }
-                  setFormData({ ...formData, applicantTelegramUsername: val });
+                }}
+                onBlur={() => {
+                  if (formData.applicantTelegramUsername) {
+                    const parsed = parseTelegramUsername(formData.applicantTelegramUsername);
+                    if (parsed.formatted) {
+                      setFormData((prev) => ({ ...prev, applicantTelegramUsername: parsed.formatted }));
+                    }
+                  }
                 }}
               />
             </div>
@@ -447,38 +494,38 @@ export const DataHarianPage: React.FC = () => {
 
           {/* Live Real Telegram Account Preview */}
           {(() => {
-            const rawTg = formData.applicantTelegramUsername || '';
-            const cleanTg = rawTg.trim().replace(/^@/, '');
+            const { clean: cleanTg, formatted: formattedTg, url: tgUrl } = parseTelegramUsername(formData.applicantTelegramUsername);
             if (!cleanTg || cleanTg.length < 2) return null;
 
             return (
               <motion.div
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="p-3.5 rounded-2xl bg-gradient-to-r from-sky-950/80 via-blue-950/60 to-slate-900 border border-sky-500/30 flex items-center justify-between gap-3 shadow-lg"
+                className="p-3.5 rounded-2xl bg-gradient-to-r from-sky-950/90 via-blue-950/70 to-slate-900 border border-sky-500/40 flex items-center justify-between gap-3 shadow-xl"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center text-white shadow-md border border-sky-400/40 shrink-0">
-                    <User className="w-5 h-5" />
+                    <Send className="w-5 h-5" />
                   </div>
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-black text-white font-mono">@{cleanTg}</span>
-                      <span className="text-[9px] bg-sky-500/20 text-sky-300 px-2 py-0.2 rounded-full border border-sky-500/30 font-bold">
-                        Akun Real Telegram
+                      <span className="text-xs font-black text-white font-mono">{formattedTg}</span>
+                      <span className="text-[9px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full border border-sky-500/30 font-bold flex items-center gap-1">
+                        <Check className="w-2.5 h-2.5 text-sky-400" />
+                        Auto Terdeteksi
                       </span>
                     </div>
                     <p className="text-[10px] text-slate-400">
-                      Link resmi t.me/{cleanTg} untuk memverifikasi profil pelamar
+                      Link resmi Telegram: <span className="text-sky-300 font-mono">{tgUrl}</span>
                     </p>
                   </div>
                 </div>
 
                 <a
-                  href={`https://t.me/${cleanTg}`}
+                  href={tgUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-md shrink-0 hover:scale-[1.03]"
+                  className="px-3.5 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-black flex items-center gap-1.5 transition-all shadow-md shrink-0 hover:scale-[1.03]"
                 >
                   <span>Buka Telegram</span>
                   <ExternalLink className="w-3.5 h-3.5" />
@@ -686,11 +733,27 @@ export const DataHarianPage: React.FC = () => {
                   <span>Grup: <strong className="text-slate-200">{rep.grup || '-'}</strong></span>
                 </div>
 
-                {rep.applicantTelegramUsername && (
-                  <p className="text-[10px] text-sky-400 font-mono">
-                    TG: {rep.applicantTelegramUsername}
-                  </p>
-                )}
+                {rep.applicantTelegramUsername && (() => {
+                  const { clean, formatted, url } = parseTelegramUsername(rep.applicantTelegramUsername);
+                  if (!clean) return null;
+                  return (
+                    <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80 mt-1">
+                      <div className="flex items-center gap-1.5 text-[10px] text-sky-300 font-mono font-bold">
+                        <Send className="w-3 h-3 text-sky-400 shrink-0" />
+                        <span>{formatted}</span>
+                      </div>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2 py-0.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-[10px] text-sky-300 font-bold flex items-center gap-1 transition-all"
+                      >
+                        <span>Chat Pelamar</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
+                    </div>
+                  );
+                })()}
               </div>
             ))}
           </div>
