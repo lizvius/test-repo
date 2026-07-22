@@ -71,17 +71,34 @@ export const getRecruiterPosts = async (
 };
 
 export const archiveOldPosts = async () => {
-  const today = getWIBDate();
+  const today = getWIBDate(); // YYYY-MM-DD
   
+  const normalizeDate = (d: string) => {
+    if (!d) return '';
+    const parts = d.split('-');
+    if (parts.length !== 3) return d;
+    if (parts[0].length === 2) return parts.reverse().join('-');
+    return d;
+  };
+  
+  const normalizedToday = normalizeDate(today);
+
   try {
+    // Get all potentially unarchived posts
     const q = query(
       collection(db, POSTS_COLLECTION),
-      where('date', '<', today),
-      where('archived', '==', false)
+      where('archived', '==', false),
+      limit(100) // Sanity limit
     );
 
     const snapshot = await getDocs(q);
-    const promises = snapshot.docs.map(d => updateDoc(doc(db, POSTS_COLLECTION, d.id), { archived: true }));
+    const promises = snapshot.docs
+      .filter(d => {
+        const pDate = normalizeDate(d.data().date || '');
+        return pDate < normalizedToday;
+      })
+      .map(d => updateDoc(doc(db, POSTS_COLLECTION, d.id), { archived: true }));
+      
     await Promise.all(promises);
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, POSTS_COLLECTION);

@@ -178,12 +178,38 @@ export const PostinganPage: React.FC = () => {
       const s = await getSystemSettings();
       setSettings(s);
       await archiveOldPosts(); // Auto archive old posts on mount
+      
+      // Auto-calculate next startNumber based on today's posts
+      if (userProfile?.telegramId) {
+        const { posts: todayPosts } = await getRecruiterPosts(userProfile.telegramId, 50);
+        const today = getWIBDate();
+        const normalizeDate = (d: string) => {
+          if (!d) return '';
+          const parts = d.split('-');
+          if (parts.length !== 3) return d;
+          if (parts[0].length === 2) return parts.reverse().join('-');
+          return d;
+        };
+        const normalizedToday = normalizeDate(today);
+        
+        const currentTodayPosts = todayPosts.filter(p => normalizeDate(p.date || '') === normalizedToday);
+        if (currentTodayPosts.length > 0) {
+          // Find the highest number used so far
+          const lastPost = currentTodayPosts[0]; // Already ordered by createdAt desc
+          const nextNum = (lastPost.startNumber || 1) + (lastPost.links?.length || 0);
+          setStartNumber(nextNum);
+        }
+      }
+
       if (activeView !== 'buat') {
         fetchHistory(true);
+        if (activeView === 'hari_ini') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       }
     };
     init();
-  }, [activeView]);
+  }, [activeView, userProfile?.telegramId]);
 
   const fetchHistory = async (reset: boolean = false) => {
     if (!userProfile?.telegramId) return;
@@ -398,7 +424,7 @@ export const PostinganPage: React.FC = () => {
 
       const result = await response.json();
       if (result.success) {
-        await createPost({
+        const newPostData = {
           telegramId: userProfile?.telegramId || '',
           username: recruiterUsername || '',
           name: recruiterName,
@@ -406,23 +432,31 @@ export const PostinganPage: React.FC = () => {
           startNumber,
           links: validLinks.map(l => l.url),
           platforms: validLinks.map(l => l.platform)
-        });
+        };
+
+        await createPost(newPostData);
 
         setStatus({ type: 'success', message: 'Batch Berhasil Dikirim!' });
+        
+        // Optimistically add to posts state to ensure it shows up in Today tab
+        const optimisticPost: BatchPost = {
+          id: 'temp-' + Date.now(),
+          ...newPostData,
+          createdAt: new Date().toISOString(),
+          archived: false
+        };
+        setPosts(prev => [optimisticPost, ...prev]);
+
         setLinks([]);
         setBulkText('');
         setIsReviewingLinks(false);
         setIsConfirmed(false);
         setImages([]);
-        setStartNumber(prev => prev + 10);
+        setStartNumber(prev => prev + validLinks.length);
         triggerHaptic('notification', 'success');
         
         // Switch view to Today's Posts automatically
         setActiveView('hari_ini');
-        setTimeout(() => {
-          fetchHistory(true);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }, 800);
       } else {
         throw new Error(result.error || 'Gagal mengirim postingan');
       }
