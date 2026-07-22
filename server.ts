@@ -351,9 +351,10 @@ app.post('/api/telegram/send-post', async (req: Request, res: Response) => {
       return;
     }
 
-    // Format Date: DD-MM-YY
-    const now = new Date();
-    const dateStr = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear()).substring(2)}`;
+    // Format Date: DD-MM-YYYY (WIB)
+    const nowInJakarta = new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' });
+    const now = new Date(nowInJakarta);
+    const dateStr = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getFullYear())}`;
     
     const endNumber = (startNumber || 1) + (links ? links.length : 0) - 1;
     const rangeStr = `${startNumber}-${endNumber}`;
