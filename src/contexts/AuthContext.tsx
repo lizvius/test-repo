@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { AuthState, TelegramUser, UserProfile } from '../types';
 import { getTelegramWebApp, isTelegramEnvironment } from '../telegram/webapp';
 import { verifyTelegramInitDataApi } from '../services/api';
-import { getUserProfile } from '../firebase/services/userService';
+import { getUserProfile, subscribeToUserProfile } from '../firebase/services/userService';
 
 interface AuthContextType extends AuthState {
   refreshProfile: () => Promise<UserProfile | null>;
@@ -259,6 +259,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     initAuth();
   }, [initAuth]);
+
+  // Real-time listener for user profile updates
+  useEffect(() => {
+    if (state.telegramUser?.id) {
+      const unsubscribe = subscribeToUserProfile(String(state.telegramUser.id), (profile) => {
+        setState((prev) => {
+          if (!prev.telegramUser) return prev;
+          
+          if (profile) {
+            localStorage.setItem(`azurlize_profile_${prev.telegramUser.id}`, JSON.stringify(profile));
+          } else {
+            localStorage.removeItem(`azurlize_profile_${prev.telegramUser.id}`);
+          }
+          
+          return {
+            ...prev,
+            userProfile: profile,
+            isAuthenticated: profile !== null
+          };
+        });
+      });
+      
+      return () => unsubscribe();
+    }
+  }, [state.telegramUser?.id]);
 
   useEffect(() => {
     if (state.userProfile && state.telegramUser) {

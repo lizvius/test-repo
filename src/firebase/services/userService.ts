@@ -7,7 +7,8 @@ import {
   collection, 
   getDocs, 
   query, 
-  orderBy 
+  orderBy,
+  onSnapshot
 } from 'firebase/firestore';
 import { UserProfile, UserRole, UserStatus } from '../../types';
 import { handleFirestoreError, OperationType } from '../error';
@@ -20,6 +21,21 @@ export async function testFirestoreConnection(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export function subscribeToUserProfile(telegramId: string, onUpdate: (profile: UserProfile | null) => void): () => void {
+  const userRef = doc(db, 'users', String(telegramId));
+  const unsubscribe = onSnapshot(userRef, (docSnap) => {
+    if (docSnap.exists()) {
+      onUpdate(docSnap.data() as UserProfile);
+    } else {
+      onUpdate(null);
+    }
+  }, (error) => {
+    console.error('Error listening to user profile:', error);
+    onUpdate(null);
+  });
+  return unsubscribe;
 }
 
 export async function getUserProfile(telegramId: string): Promise<UserProfile | null> {
@@ -92,6 +108,18 @@ export async function updateUserRole(
   } catch (error) {
     handleFirestoreError(error, OperationType.UPDATE, `users/${telegramId}`);
   }
+}
+
+export function subscribeToAllUsers(onUpdate: (users: UserProfile[]) => void): () => void {
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, orderBy('createdAt', 'desc'));
+  
+  return onSnapshot(q, (snapshot) => {
+    const users = snapshot.docs.map(docSnap => docSnap.data() as UserProfile);
+    onUpdate(users);
+  }, (error) => {
+    console.error('Error listening to all users:', error);
+  });
 }
 
 export async function getAllUsers(): Promise<UserProfile[]> {

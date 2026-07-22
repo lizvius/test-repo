@@ -1,32 +1,29 @@
 import { useState, useCallback, useEffect } from 'react';
 import { UserProfile, UserRole, UserStatus } from '../types';
-import { getAllUsers, updateUserStatus, updateUserRole } from '../firebase/services/userService';
+import { getAllUsers, subscribeToAllUsers, updateUserStatus, updateUserRole } from '../firebase/services/userService';
 import { syncUserToSheetsApi } from '../services/api';
 import { useAuth } from './useAuth';
 
 export function useRecruiters() {
   const { userProfile } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchUsers = useCallback(async () => {
-    if (userProfile?.role !== 'Admin' && userProfile?.role !== 'Owner') return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await getAllUsers();
-      setUsers(data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal mengambil data recruiter.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [userProfile]);
-
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    if (userProfile?.role !== 'Admin' && userProfile?.role !== 'Owner') {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    const unsubscribe = subscribeToAllUsers((updatedUsers) => {
+      setUsers(updatedUsers);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [userProfile?.role]);
 
   const changeStatus = async (telegramId: string, status: UserStatus) => {
     if (!userProfile) return;
@@ -81,7 +78,7 @@ export function useRecruiters() {
     users,
     isLoading,
     error,
-    refetch: fetchUsers,
+    refetch: async () => {}, // No-op, handled by realtime subscription
     changeStatus,
     changeRole
   };
