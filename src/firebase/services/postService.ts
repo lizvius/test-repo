@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config';
 import { BatchPost } from '../../types';
+import { getWIBDate } from '../../utils/format';
 
 const POSTS_COLLECTION = 'posts';
 
@@ -61,7 +62,7 @@ export const getRecruiterPosts = async (
 };
 
 export const archiveOldPosts = async () => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getWIBDate();
   
   const q = query(
     collection(db, POSTS_COLLECTION),

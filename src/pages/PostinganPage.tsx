@@ -7,6 +7,7 @@ import { triggerHaptic } from '../telegram/webapp';
 import { getSystemSettings } from '../firebase/services/settingService';
 import { createPost, getRecruiterPosts, archiveOldPosts } from '../firebase/services/postService';
 import { SystemSettings, BatchPost } from '../types';
+import { getWIBDate } from '../utils/format';
 import { 
   Image as ImageIcon, 
   X, 
@@ -122,11 +123,28 @@ export const PostinganPage: React.FC = () => {
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
-      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      const diff = endOfDay.getTime() - now.getTime();
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      
+      // Get Jakarta parts
+      const partsArr = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Jakarta',
+        hour: 'numeric', minute: 'numeric', second: 'numeric',
+        year: 'numeric', month: 'numeric', day: 'numeric',
+        hour12: false
+      }).formatToParts(now);
+
+      const parts: Record<string, number> = {};
+      partsArr.forEach(({type, value}) => {
+        if (type !== 'literal') parts[type] = parseInt(value);
+      });
+
+      // We create "local" dates using Jakarta values to get a relative difference
+      // This works because both dates share the same local offset
+      const jakartaTime = new Date(2000, 0, 1, parts.hour, parts.minute, parts.second);
+      const midnightTime = new Date(2000, 0, 1, 23, 59, 59, 999);
+      
+      const diff = midnightTime.getTime() - jakartaTime.getTime();
       const totalDayMs = 24 * 60 * 60 * 1000;
-      const elapsedMs = now.getTime() - startOfDay.getTime();
+      const elapsedMs = (parts.hour * 3600 + parts.minute * 60 + parts.second) * 1000;
       const pct = Math.min(100, Math.max(0, (elapsedMs / totalDayMs) * 100));
 
       setTimeRemainingMs(Math.max(0, diff));
@@ -174,7 +192,7 @@ export const PostinganPage: React.FC = () => {
         reset ? undefined : lastDoc
       );
       
-      const today = new Date().toISOString().split('T')[0];
+      const today = getWIBDate();
       
       // Filter based on active view
       const filtered = fetchedPosts.filter(p => {
@@ -276,7 +294,7 @@ export const PostinganPage: React.FC = () => {
     }
 
     // Duplicate Check
-    const today = new Date().toISOString().split('T')[0];
+    const today = getWIBDate();
     const todayPosts = posts.filter(p => p.date === today);
     const existingLinks = new Set(todayPosts.flatMap(p => p.links));
     
@@ -318,7 +336,7 @@ export const PostinganPage: React.FC = () => {
           telegramId: userProfile?.telegramId || '',
           username: recruiterUsername || '',
           name: recruiterName,
-          date: new Date().toISOString().split('T')[0],
+          date: getWIBDate(),
           startNumber,
           links: validLinks.map(l => l.url),
           platforms: validLinks.map(l => l.platform)

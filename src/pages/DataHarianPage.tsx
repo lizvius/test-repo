@@ -6,7 +6,7 @@ import { Button } from '../components/common/Button';
 import { useReports } from '../hooks/useReports';
 import { useAuth } from '../hooks/useAuth';
 import { DailyReportFormData, DailyReport, SystemSettings } from '../types';
-import { formatUsername, formatWIBDate } from '../utils/format';
+import { formatUsername, formatWIBDate, getWIBDate, getWIBMonday } from '../utils/format';
 import { getSystemSettings } from '../firebase/services/settingService';
 import { sendReportToTelegramApi } from '../services/api';
 import { 
@@ -352,14 +352,8 @@ export const DataHarianPage: React.FC = () => {
 
   const isAdminOrOwner = userProfile?.role === 'Admin' || userProfile?.role === 'Owner';
   const telegramId = userProfile?.telegramId || String(telegramUser?.id || '');
-  const getLocalDateString = (date: Date) => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
-  const todayStr = getLocalDateString(new Date());
+  const todayStr = getWIBDate();
 
   // Auto-set recruiter username
   const autoRecruiterUsername = userProfile?.username 
@@ -378,20 +372,12 @@ export const DataHarianPage: React.FC = () => {
 
   // Calculate current week's Monday
   const currentMondayStr = useMemo(() => {
-    const d = new Date();
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    const monday = new Date(d.setDate(diff));
-    return getLocalDateString(monday);
+    return getWIBMonday(0);
   }, []);
 
   // Calculate last week's Monday
   const lastMondayStr = useMemo(() => {
-    const d = new Date();
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1) - 7;
-    const monday = new Date(d.setDate(diff));
-    return getLocalDateString(monday);
+    return getWIBMonday(-7);
   }, []);
 
   const reportsMingguIni = useMemo(() => {
@@ -521,12 +507,28 @@ export const DataHarianPage: React.FC = () => {
   useEffect(() => {
     const updateTimer = () => {
       const now = new Date();
-      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-      const diff = endOfDay.getTime() - now.getTime();
+      
+      // Get Jakarta parts
+      const partsArr = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Jakarta',
+        hour: 'numeric', minute: 'numeric', second: 'numeric',
+        year: 'numeric', month: 'numeric', day: 'numeric',
+        hour12: false
+      }).formatToParts(now);
 
-      const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      const parts: Record<string, number> = {};
+      partsArr.forEach(({type, value}) => {
+        if (type !== 'literal') parts[type] = parseInt(value);
+      });
+
+      // We create "local" dates using Jakarta values to get a relative difference
+      // This works because both dates share the same local offset
+      const jakartaTime = new Date(2000, 0, 1, parts.hour, parts.minute, parts.second);
+      const midnightTime = new Date(2000, 0, 1, 23, 59, 59, 999);
+      
+      const diff = midnightTime.getTime() - jakartaTime.getTime();
       const totalDayMs = 24 * 60 * 60 * 1000;
-      const elapsedMs = now.getTime() - startOfDay.getTime();
+      const elapsedMs = (parts.hour * 3600 + parts.minute * 60 + parts.second) * 1000;
       const pct = Math.min(100, Math.max(0, (elapsedMs / totalDayMs) * 100));
 
       setTimeRemainingMs(Math.max(0, diff));

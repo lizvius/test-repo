@@ -6,11 +6,12 @@ import { Button } from '../components/common/Button';
 import { useReports } from '../hooks/useReports';
 import { DailyReportFormData } from '../types';
 import { Calendar, Eye, UserCheck, Star, Share2, AlertCircle, FileText, CheckCircle2, Sparkles } from 'lucide-react';
+import { getWIBDate } from '../utils/format';
 
 export const LaporanHarianPage: React.FC = () => {
   const { submitReport, isLoading } = useReports();
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getWIBDate();
 
   const [formData, setFormData] = useState<DailyReportFormData>({
     date: todayStr,

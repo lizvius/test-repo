@@ -56,3 +56,47 @@ export function formatWIBDateTime(dateString?: string | null): string {
     return dateString;
   }
 }
+
+/**
+ * Gets the current date in YYYY-MM-DD format based on Asia/Jakarta timezone (WIB)
+ */
+export function getWIBDate(): string {
+  const options: Intl.DateTimeFormatOptions = {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  };
+  const formatter = new Intl.DateTimeFormat('en-CA', options); // en-CA gives YYYY-MM-DD
+  return formatter.format(new Date());
+}
+
+/**
+ * Gets current time in milliseconds adjusted to WIB
+ * This is useful for countdowns where we want the end of day in WIB
+ */
+export function getWIBNow(): Date {
+  const now = new Date();
+  // Get time string in WIB
+  const wibString = now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' });
+  return new Date(wibString);
+}
+
+/**
+ * Gets the date of the Monday for the given week in WIB
+ * offset: 0 for current week, -7 for last week
+ */
+export function getWIBMonday(offsetDays: number = 0): string {
+  const now = new Date();
+  const jakartaStr = now.toLocaleString('en-US', { timeZone: 'Asia/Jakarta' });
+  const d = new Date(jakartaStr);
+  
+  const day = d.getDay(); // 0 (Sun) to 6 (Sat)
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) + offsetDays;
+  d.setDate(diff);
+  
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const date = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${date}`;
+}
