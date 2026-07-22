@@ -101,7 +101,9 @@ const CHANNELS = [
 
 export const PostinganPage: React.FC = () => {
   const { userProfile, telegramUser } = useAuth();
-  const [links, setLinks] = useState<SocialLink[]>(Array(10).fill({ url: '', platform: 'Facebook' }));
+  const [links, setLinks] = useState<SocialLink[]>([]);
+  const [bulkText, setBulkText] = useState('');
+  const [isReviewingLinks, setIsReviewingLinks] = useState(false);
   const [startNumber, setStartNumber] = useState<number>(1);
   const [images, setImages] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -392,7 +394,9 @@ export const PostinganPage: React.FC = () => {
         });
 
         setStatus({ type: 'success', message: 'Batch Berhasil Dikirim!' });
-        setLinks(Array(10).fill({ url: '', platform: 'Facebook' }));
+        setLinks([]);
+        setBulkText('');
+        setIsReviewingLinks(false);
         setImages([]);
         setStartNumber(prev => prev + 10);
         triggerHaptic('notification', 'success');
@@ -535,10 +539,10 @@ export const PostinganPage: React.FC = () => {
                   <div className="flex items-center justify-between px-1">
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
                       <LinkIcon className="w-4 h-4 text-sky-400" />
-                      Daftar Link & Platform
-                      {links.filter(l => l.url).length > 0 && (
+                      {isReviewingLinks ? 'Review Link Terdeteksi' : 'Tempel Daftar Link'}
+                      {links.length > 0 && (
                         <span className="text-[9px] text-sky-400 normal-case font-bold ml-2">
-                          ({links.filter(l => l.url).length} terisi)
+                          ({links.length} Link)
                         </span>
                       )}
                     </label>
@@ -547,85 +551,125 @@ export const PostinganPage: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Bulk Paste Area */}
-                  <div className="relative group">
-                    <textarea
-                      placeholder="Tempel banyak link di sini (akan otomatis membagi ke kolom di bawah)..."
-                      className="w-full h-16 p-3 rounded-2xl bg-slate-950/40 border border-slate-800 text-[10px] text-slate-400 placeholder:text-slate-700 outline-none focus:border-sky-500/30 transition-all resize-none font-medium"
-                      onChange={(e) => {
-                        const content = e.target.value;
-                        const detectedLinks = content.match(/https?:\/\/[^\s]+/g);
-                        if (detectedLinks) {
-                          detectedLinks.slice(0, 10).forEach((url, i) => {
-                            updateLink(i, url);
-                          });
-                          e.target.value = ''; // Clear after parse
-                          triggerHaptic('notification', 'success');
-                        }
-                      }}
-                    />
-                    <div className="absolute top-2 right-2 opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none">
-                      <span className="text-[8px] font-black text-sky-500 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20 uppercase">
-                        Mode Tempel Cepat
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    {links.map((link, idx) => (
-                      <div 
-                        key={idx} 
-                        className={`flex flex-col gap-2 p-3 rounded-2xl transition-all border ${
-                          link.url 
-                            ? 'bg-slate-900/40 border-slate-700/50' 
-                            : 'bg-slate-950/40 border-slate-800/50'
-                        } focus-within:border-sky-500/40 focus-within:bg-slate-900/60 focus-within:ring-1 focus-within:ring-sky-500/10`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 flex-1">
-                            <span className={`text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-lg border shrink-0 transition-colors ${
-                              link.url ? 'text-sky-400 border-sky-500/30 bg-sky-500/5' : 'text-slate-600 border-slate-800 bg-slate-900'
-                            }`}>
-                              {idx + 1}
-                            </span>
-                              <input
-                                type="text"
-                                value={link.url}
-                                onChange={(e) => updateLink(idx, e.target.value)}
-                                placeholder={`Paste Link #${startNumber + idx}...`}
-                                className="bg-transparent border-none text-white text-xs outline-none w-full placeholder:text-slate-700 font-medium py-1"
-                              />
-                              {link.url && (
-                                <button 
-                                  onClick={() => updateLink(idx, '')}
-                                  className="p-1 hover:bg-white/10 rounded-full transition-colors text-slate-500 hover:text-white"
-                                >
-                                  <X className="w-3 h-3" />
-                                </button>
-                              )}
-                          </div>
-                          
-                          <button
-                            onClick={() => {
-                              const currentIdx = CHANNELS.findIndex(c => c.id === link.platform);
-                              const nextIdx = (currentIdx + 1) % CHANNELS.length;
-                              updatePlatform(idx, CHANNELS[nextIdx].id as SocialPlatform);
-                            }}
-                            className={`shrink-0 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center gap-1.5 border transition-all active:scale-90 shadow-sm ${
-                              CHANNELS.find(c => c.id === link.platform)?.color || 'text-slate-400 border-slate-800 bg-slate-900'
-                            }`}
-                          >
-                            <ChannelPlatformIcon id={link.platform} className="w-3 h-3" />
-                            <span className="hidden xs:inline">{link.platform === 'X (Twitter)' ? 'X' : link.platform}</span>
-                          </button>
+                  {!isReviewingLinks ? (
+                    <div className="space-y-4">
+                      <div className="relative group">
+                        <textarea
+                          placeholder="Tempel banyak link di sini... (Contoh: 1. http://... atau langsung link saja)"
+                          className="w-full h-32 p-4 rounded-2xl bg-slate-950/40 border border-slate-800 text-[11px] text-white placeholder:text-slate-700 outline-none focus:border-sky-500/30 transition-all resize-none font-medium leading-relaxed"
+                          value={bulkText}
+                          onChange={(e) => setBulkText(e.target.value)}
+                        />
+                        <div className="absolute top-2 right-2 opacity-0 group-focus-within:opacity-100 transition-opacity pointer-events-none">
+                          <span className="text-[8px] font-black text-sky-500 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20 uppercase">
+                            Mode Tempel Cepat
+                          </span>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      
+                      <Button
+                        fullWidth
+                        variant="secondary"
+                        disabled={!bulkText.trim()}
+                          onClick={() => {
+                            const detected = bulkText.match(/https?:\/\/[^\s]+/g);
+                            if (!detected || detected.length === 0) {
+                              setStatus({ type: 'error', message: 'Tidak ada link valid yang ditemukan.' });
+                              return;
+                            }
+
+                            if (detected.length > 10) {
+                              setStatus({ type: 'error', message: 'Maksimal 10 link diperbolehkan. Mohon kurangi jumlah link.' });
+                              return;
+                            }
+
+                            // Try to detect start number from first numbered link if present (e.g., "41. http...")
+                            const firstMatch = bulkText.match(/(\d+)\s*[\.\)-]\s*https?:\/\//);
+                            if (firstMatch && firstMatch[1]) {
+                              setStartNumber(parseInt(firstMatch[1]));
+                            }
+
+                            const formattedLinks: SocialLink[] = detected.map(url => {
+                            let platform: SocialPlatform = 'Facebook';
+                            const lowUrl = url.toLowerCase();
+                            if (lowUrl.includes('facebook.com') || lowUrl.includes('fb.com') || lowUrl.includes('fb.watch')) platform = 'Facebook';
+                            else if (lowUrl.includes('x.com') || lowUrl.includes('twitter.com')) platform = 'X (Twitter)';
+                            else if (lowUrl.includes('instagram.com')) platform = 'Instagram';
+                            else if (lowUrl.includes('tiktok.com')) platform = 'TikTok';
+                            else if (lowUrl.includes('threads.net')) platform = 'Threads';
+                            else if (lowUrl.includes('wa.me') || lowUrl.includes('whatsapp.com')) platform = 'WhatsApp';
+                            else if (lowUrl.includes('t.me')) platform = 'Telegram';
+                            
+                            return { url, platform };
+                          });
+
+                          setLinks(formattedLinks);
+                          setIsReviewingLinks(true);
+                          setStatus({ type: 'idle' });
+                          triggerHaptic('notification', 'success');
+                        }}
+                      >
+                        Pratinjau Link ({bulkText.match(/https?:\/\/[^\s]+/g)?.length || 0})
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                        {links.map((link, idx) => (
+                          <div 
+                            key={idx} 
+                            className="flex flex-col gap-2 p-3 rounded-2xl bg-slate-900/40 border border-slate-700/50"
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2 flex-1 min-w-0">
+                                <span className="text-[10px] font-black w-6 h-6 flex items-center justify-center rounded-lg border shrink-0 text-sky-400 border-sky-500/30 bg-sky-500/5">
+                                  {idx + 1}
+                                </span>
+                                <span className="text-xs text-white truncate font-medium">{link.url}</span>
+                              </div>
+                              <div className={`shrink-0 px-2 py-1 rounded-lg text-[8px] font-black uppercase flex items-center gap-1 border ${
+                                CHANNELS.find(c => c.id === link.platform)?.color || 'text-slate-400 border-slate-800'
+                              }`}>
+                                <ChannelPlatformIcon id={link.platform} className="w-2.5 h-2.5" />
+                                {link.platform === 'X (Twitter)' ? 'X' : link.platform}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="secondary" 
+                          fullWidth 
+                          className="py-3 h-auto text-[10px] font-black uppercase"
+                          onClick={() => {
+                            setIsReviewingLinks(false);
+                            setLinks([]);
+                            triggerHaptic('impact', 'light');
+                          }}
+                        >
+                          Ubah Link
+                        </Button>
+                        <Button 
+                          variant="primary" 
+                          fullWidth 
+                          className="py-3 h-auto text-[10px] font-black uppercase shadow-lg shadow-sky-500/20"
+                          onClick={() => {
+                            triggerHaptic('notification', 'success');
+                            const imageSection = document.getElementById('image-section');
+                            imageSection?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                        >
+                          Konfirmasi Data
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Step 3: Visual Assets */}
-                <div className="space-y-4 pt-2">
+                <div id="image-section" className={`space-y-4 pt-2 transition-all duration-500 ${!isReviewingLinks ? 'opacity-30 pointer-events-none grayscale' : 'opacity-100'}`}>
                   <div className="flex items-center justify-between px-1">
                     <label className="text-[11px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
                       <ImageIcon className="w-4 h-4 text-sky-400" />
